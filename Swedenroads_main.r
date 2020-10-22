@@ -2,7 +2,10 @@
 #            Swedenroads: load dataset for analysis 
 #=================================================================#
 source("LoadInstall.R")
-source("ImportNVDB_Data.R")
-deps <- c("sf", "data.table","tidyverse")
+deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime")
 LoadInstall(deps)
+
+#source("ImportNVDB_Data.R")
+source("SurvivalAnalysisData.r")
+
 
