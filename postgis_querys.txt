@@ -1,0 +1,230 @@
+##########################################
+# This query gives the mean of each condition measure for every 100 m section
+SELECT nb.*, 
+	AVG(nm.sparm17) AS mean_spar17, 
+	AVG(nm.sparm15) AS mean_spar15, 
+	AVG(nm.irih) AS mean_irih, 
+	AVG(nm.iriv) AS mean_iriv, 
+	AVG(nm.kantdjup) AS mean_kantdjup
+FROM "norrbotten-belaggning-2020" AS nb
+LEFT JOIN "norrbotten-matdata-2020" AS nm
+ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+GROUP BY nb.gid
+
+###########################
+# This query adds the longest intersection of pavement type for each homogeneous section
+SELECT DISTINCT ON (nv.objectid)
+  nv.*,
+  nb_all.gid,
+  nb_all.beldatum,
+  nb_all.beltyp,
+  nb_all.tillvmetod,
+  nb_all.utlmetod,
+  ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)) as intersect_len
+FROM "nvdb_norrbotten_201018" AS nv
+LEFT JOIN "norrbotten-belaggning-2020" AS nb_all
+ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)
+ORDER BY nv.objectid, intersect_len DESC, nb_all.riktning
+
+#####################################################
+#  This query joins several tables into one new table
+CREATE TABLE new_table
+AS
+  SELECT * FROM table1
+    UNION
+  SELECT * FROM table2;
+
+#####################################################
+SELECT DISTINCT ON (nv.objectid)
+  nv.*,
+  nb_all.gid,
+  nb_all.beldatum,
+  nb_all.beltyp,
+  nb_all.tillvmetod,
+  nb_all.utlmetod,
+  nb_all.mean_spar17,
+  nb_all.mean_spar15, 
+  nb_all.mean_irih, 
+  nb_all.mean_iriv, 
+  nb_all.mean_kantdjup,
+  ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)) as intersect_len
+FROM "nvdb_norrbotten_201018" AS nv
+LEFT JOIN (
+	SELECT nb.gid,
+  	       nb.beldatum,
+           	nb.beltyp,
+          	nb.tillvmetod, 
+		nb.utlmetod,
+		nb.riktning,
+		nb.geom,
+	       AVG(nm.sparm17) AS mean_spar17, 
+	       AVG(nm.sparm15) AS mean_spar15, 
+	       AVG(nm.irih) AS mean_irih, 
+	       AVG(nm.iriv) AS mean_iriv, 
+	       AVG(nm.kantdjup) AS mean_kantdjup
+	FROM "norrbotten-belaggning-2020" AS nb
+	LEFT JOIN "norrbotten-matdata-2020" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.gid) AS nb_all
+ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)
+ORDER BY nv.objectid, intersect_len DESC, nb_all.riktning
+
+########################################################
+# Create new table
+CREATE TABLE "norrbotten_belmat" AS (
+	SELECT nb.gid,
+  	   nb.beldatum,
+       nb.beltyp,
+       nb.tillvmetod, 
+	   nb.utlmetod,
+	   nb.riktning,
+	   nb.geom,
+	   AVG(nm.sparm17) AS mean_spar17, 
+	   AVG(nm.sparm15) AS mean_spar15, 
+	   AVG(nm.irih) AS mean_irih, 
+	   AVG(nm.iriv) AS mean_iriv, 
+	   AVG(nm.kantdjup) AS mean_kantdjup
+	FROM "norrbotten-belaggning-2020" AS nb
+	LEFT JOIN "norrbotten-matdata-2020" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.gid
+)
+
+SELECT nb.*, 
+	AVG(nm.sparm17) AS mean_spar17, 
+	AVG(nm.sparm15) AS mean_spar15, 
+	AVG(nm.irih) AS mean_irih, 
+	AVG(nm.iriv) AS mean_iriv, 
+	AVG(nm.kantdjup) AS mean_kantdjup
+FROM "nvdb_norrbotten_bel" AS nb
+LEFT JOIN "norrbotten-matdata-2020" AS nm
+ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+GROUP BY nb.gid
+
+
+
+#######################################################
+# First: create table with nvdb & belaggning
+# set index & primary key for table
+CREATE TABLE "nvdb_norrbotten_bel" AS 
+	(SELECT DISTINCT ON (nv.objectid)
+		nv.*,
+		nb_all.beldatum,
+		nb_all.beltyp,
+		nb_all.tillvmetod,
+		nb_all.utlmetod,
+		nb_all.riktning,
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)) as intersect_len
+	FROM "nvdb_norrbotten_201018" AS nv
+	LEFT JOIN "norrbotten-belaggning-2020" AS nb_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)
+	ORDER BY nv.objectid, intersect_len DESC, nb_all.riktning
+)
+
+# Then join nvdb_norrbotten_bel with matdata
+SELECT nb.*, 
+	AVG(nm.sparm17) AS mean_spar17, 
+	AVG(nm.sparm15) AS mean_spar15, 
+	AVG(nm.irih) AS mean_irih, 
+	AVG(nm.iriv) AS mean_iriv, 
+	AVG(nm.kantdjup) AS mean_kantdjup
+FROM "nvdb_norrbotten_bel" AS nb
+LEFT JOIN "norrbotten-matdata-2020" AS nm
+ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+GROUP BY nb.gid
+
+##########################################
+# Union of tables
+
+CREATE TABLE sweden_belaggning_2020 AS 
+SELECT * FROM "blekinge-belaggning-2020" 
+UNION SELECT * FROM "dalarna-belaggning-2020" 
+UNION SELECT * FROM "gavleborg-belaggning-2020" 
+UNION SELECT * FROM "gotland-belaggning-2020" 
+UNION SELECT * FROM "halland-belaggning-2020" 
+UNION SELECT * FROM "jamtland-belaggning-2020" 
+UNION SELECT * FROM "jonkoping-belaggning-2020" 
+UNION SELECT * FROM "kalmar-belaggning-2020" 
+UNION SELECT * FROM "kronoberg-belaggning-2020" 
+UNION SELECT * FROM "norrbotten-belaggning-2020" 
+UNION SELECT * FROM "orebro-belaggning-2020" 
+UNION SELECT * FROM "ostergotland-belaggning-2020" 
+UNION SELECT * FROM "skane-belaggning-2020" 
+UNION SELECT * FROM "sodermanland-belaggning-2020" 
+UNION SELECT * FROM "stockholm-belaggning-2020" 
+UNION SELECT * FROM "uppsala-belaggning-2020" 
+UNION SELECT * FROM "varmland-belaggning-2020" 
+UNION SELECT * FROM "vasterbotten-belaggning-2020" 
+UNION SELECT * FROM "vasternorrland-belaggning-2020" 
+UNION SELECT * FROM "vastmanland-belaggning-2020" 
+UNION SELECT * FROM "vastra-gotaland-belaggning-2020"
+
+CREATE TABLE sweden_matdata_2020 AS 
+SELECT * FROM "blekinge-matdata-2020" 
+UNION SELECT * FROM "dalarna-matdata-2020" 
+UNION SELECT * FROM "gavleborg-matdata-2020" 
+UNION SELECT * FROM "gotland-matdata-2020" 
+UNION SELECT * FROM "halland-matdata-2020" 
+UNION SELECT * FROM "jamtland-matdata-2020" 
+UNION SELECT * FROM "jonkoping-matdata-2020" 
+UNION SELECT * FROM "kalmar-matdata-2020" 
+UNION SELECT * FROM "kronoberg-matdata-2020" 
+UNION SELECT * FROM "norrbotten-matdata-2020" 
+UNION SELECT * FROM "orebro-matdata-2020" 
+UNION SELECT * FROM "ostergotland-matdata-2020" 
+UNION SELECT * FROM "skane-matdata-2020" 
+UNION SELECT * FROM "sodermanland-matdata-2020" 
+UNION SELECT * FROM "stockholm-matdata-2020" 
+UNION SELECT * FROM "uppsala-matdata-2020" 
+UNION SELECT * FROM "varmland-matdata-2020" 
+UNION SELECT * FROM "vasterbotten-matdata-2020" 
+UNION SELECT * FROM "vasternorrland-matdata-2020" 
+UNION SELECT * FROM "vastmanland-matdata-2020" 
+UNION SELECT * FROM "vastra-gotaland-matdata-2020"
+
+
+CREATE TABLE "nvdb_sweden_bel_mat" AS 
+	(SELECT nb.*, 
+		AVG(nm.sparm17) AS mean_sparm17, 
+		AVG(nm.sparm15) AS mean_sparm15, 
+		AVG(nm.spar17h) AS mean_spar17h,
+		AVG(nm.spar17v) AS mean_spar17v,
+		AVG(nm.irih) AS mean_irih, 
+		AVG(nm.iriv) AS mean_iriv, 
+		AVG(nm.kantdjup) AS mean_kantdjup
+	FROM "nvdb_nat_bel" AS nb
+	LEFT JOIN "sweden_matdata_2020" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.gid)
+
+
+############################
+# Data with percentiles
+
+CREATE TABLE "nvdb_sweden_bel_mat_90perc" AS 
+	(SELECT nb.*, 
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.spar17h) AS spar17h,
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.spar17v) AS spar17v,
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.irih) AS irih,
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
+		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+	FROM "nvdb_nat_bel" AS nb
+	LEFT JOIN "sweden_matdata_2020" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.gid)
+
+SELECT nb.*, 
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.spar17h) AS spar17h,
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.spar17v) AS spar17v,
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.irih) AS irih,
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
+	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+FROM "nvdb_nat_bel" AS nb
+LEFT JOIN "sweden_matdata_2020" AS nm
+ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+GROUP BY nb.gid
+LIMIT 20
