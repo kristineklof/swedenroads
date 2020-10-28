@@ -26,9 +26,16 @@ vast_surv <- CreateSurvivalData2019(vast)
 vast_surv <- CreateHomoData(vast_surv)
 vast_surv <- MaintenanceStandard(vast_surv)
 vast_surv <- CreateAgeEvent(vast_surv)
-
 print(vast_surv[1:10,])
 nrow(vast_surv)
+
+# AB lan
+lan_ab <- fread("C:/Users/winte/Överlevnadsanalys/Sweden/atg_int_AB.csv")
+ab_surv <- CreateSurvivalData2019(lan_ab)
+ab_surv <- CreateHomoData(ab_surv)
+ab_surv <- MaintenanceStandard(ab_surv)
+ab_surv <- CreateAgeEvent(ab_surv)
+head(ab_surv)
 
 # Weibull regression with Vastmanland
 wei_reg <- survreg(Surv(age_non0 ,d) ~ strata(tkl8) +
