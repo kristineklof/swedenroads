@@ -1,4 +1,3 @@
-
 #=================================================================#
 #              This file  creates five quality classes 
 #                 based on survival curves percentiles
@@ -10,29 +9,59 @@ if_else_na <- function(a,b,c){
 }
 
 SetClasses <- function(dat){
-  dat <- as.data.table(dat)
-  
-  dat[, QClass := if_else_na(RemainingServiceLife >= 0, 2, NA)]
-  dat[, QClass := if_else_na(RemainingServiceLife>= 5, 3, QClass)]
-  dat[, QClass := if_else_na(RemainingServiceLife >= 10, 4, QClass)]
-  dat[, QClass := if_else_na(RemainingServiceLife >= 15, 5, QClass)]
-  dat[, QClass := if_else_na(SP_MEAN > SP_maint | IR_MEAN > IRI_maint | RemainingServiceLife < 0, 1, QClass)]
-  
+  setDT(dat)
+
+  dat[, QClass := if_else_na(RemainingServiceLife < ceiling(0.25*PredictedServiceLife), 2, NA)]
+  dat[, QClass := if_else_na(RemainingServiceLife >= ceiling(0.25*PredictedServiceLife), 3, QClass)]
+  dat[, QClass := if_else_na(RemainingServiceLife >= ceiling(0.5*PredictedServiceLife), 4, QClass)]
+  dat[, QClass := if_else_na(RemainingServiceLife >= ceiling(0.75*PredictedServiceLife), 5, QClass)]
+  dat[, QClass := if_else_na(RemainingServiceLife < 0, 1, QClass)]
+  dat[, QClass := if_else_na((RoadType == "Motorway" & tkl8 >= 7 & QClass <3) | (tkl8 >= 7 & QClass <3), 3, QClass)]
+  dat[, QClass := if_else_na((RoadWidth > 60 & rut_max17_perc > SP_maint) | (RoadWidth <= 60 & rut_max15_perc > SP_maint) | 
+                              IRI_r_perc > IRI_maint | IRI_l_perc > IRI_maint, 1, QClass)]
+
   return(dat)
 }
 
 itShouldSetClasses <- function(){
-  testdat <- data.frame(SP_MEAN = c(NA,1,1,0,10),
-                        SP_maint = c(5,5,5,5,5),
-                        IR_MEAN = c(10,NA,1,2,4),
-                        IRI_maint = c(5,5,5,5,5),
-                        RemainingServiceLife = c(3,25,3,10,5),
-                        PredictedMedianLife = c(10,))
+  testdat <- data.frame(rut_max17_perc = c(NA,1,1,10,1,1,1),
+                        rut_max15_perc = c(NA,1,1,5,1,1,1),
+                        SP_maint = c(5,5,5,5,5,5,5),
+                        IRI_r_perc = c(10,NA,1,2,4,1,1),
+                        IRI_l_perc = c(8,NA,1,1,3,1,1),
+                        IRI_maint = c(5,5,5,5,5,5,5),
+                        RemainingServiceLife = c(7,-3,12,2,11,6,0),
+                        RoadWidth = c(60,65,60,70,60,60,60),
+                        PredictedServiceLife = c(11,22,15,12,17,22,24),
+                        RoadType = c("Ordinary road", "Motorway", "Ordinary road", "Ordinary road", "Ordinary road", "Ordinary road","Ordinary road"),
+                        tkl8 = c(1,7,1,8,1,1,1))
   
   res <- SetClasses(testdat)
   #print(res)
-  gold <- c(1,5,2,4,1)
+  gold <- c(1,3,5,1,4,3,2)
   stopifnot(res$QClass == gold)
 }
 
 itShouldSetClasses()
+
+CreateServiceLifeData <- function(dat, mod, percentil = 0.75){
+  setDT(dat)
+  myVector <- c("tkl8", "AADT", "AADT_heavy", "PavementType", "Region", 
+                "BearingCapacityClass", "RoadType", "RoadWidth", "SpeedLimit")
+  preddat <- dat[, ..myVector]
+
+  # Predict Weibull lifetimes
+  dat[, PredictedServiceLife := round(predict(mod, preddat, type="quantile", p=percentil), digits=0)]
+  dat[, RemainingServiceLife := PredictedServiceLife-Age]
+
+  # If PavementType == "Försegling" subtract 8 years to remaining service life, 
+  # "Indränkt makadam", "Tunnskikt", or "Övrigt", subtract 5 years to remaining service life, 
+  dat[, RemainingServiceLife:= ifelse(PavementType == "Försegling", RemainingServiceLife-10, RemainingServiceLife)]
+  dat[, RemainingServiceLife := ifelse(PavementType == "Indränkt makadam" | PavementType == "Tunnskikt" | PavementType == "Övrigt", RemainingServiceLife-5, RemainingServiceLife)]
+
+  # Set classes
+  dat <- SetClasses(dat)
+  
+  return(setDT(dat))
+}
+
