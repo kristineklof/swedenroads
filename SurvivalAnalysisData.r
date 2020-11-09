@@ -154,7 +154,8 @@ CreateSurvivalData2019 <- function(dat){
 
   lannummer <- data.frame(LAN = c("AB","C","D","E","F","G","H","I","K","L","M","N",
                                   "O","P","R","S","T","U","W","X","Y","Z","AC","BD"),
-                          LAN_nr = 2:25)
+                          LAN_nr = c(1,3,4,5,6,7,8,9,10,11,12,13,
+                                    14,15,16,17,18,19,20,21,22,23,24,25))
 
   # Create LAN_nr
   dat <- left_join(dat, lannummer, by=c("LAN"))
@@ -211,13 +212,21 @@ CreateSurvivalData2019 <- function(dat){
   # Create SpeedLimit
   dat[, SpeedLimit := HAST]
 
-  # Create Region 
-  labs <- c("Ost")
-  dat[, Region := factor(Region, labels = labs)]
+  # Create Region
+  dat[, Region := ifelse(LAN_nr == 24 | LAN_nr == 25, "Nord", NA)]
+  dat[, Region := ifelse(LAN_nr == 20 | LAN_nr == 21 | LAN_nr == 22 | LAN_nr == 23, "Mitt", Region)]
+  dat[, Region := ifelse(LAN_nr == 1 | LAN_nr == 9, "Sthlm", Region)]
+  dat[, Region := ifelse(LAN_nr == 3 | LAN_nr == 4 | LAN_nr == 5 | LAN_nr == 18 | LAN_nr == 19, "Ost", Region)]
+  dat[, Region := ifelse(LAN_nr == 13 | LAN_nr == 14 | LAN_nr == 15 | LAN_nr == 16 | LAN_nr == 17, "Vast", Region)]
+  dat[, Region := ifelse(LAN_nr == 6 | LAN_nr == 7 | LAN_nr == 8 | LAN_nr == 10 | LAN_nr == 11 | LAN_nr == 12, "Syd", Region)] 
 
   # Create IRI mean and Spar mean OBS BEHÖVER NY DATA
-  dat[, IR_90p := e_irih_100]
-  dat[, SP_90p := e_spa_100]
+  dat[, IR := CreateMatning(atgdat = atgdat2e_Fikeff, nextatgdat = atgdatne_Fikeff, 
+                            matning = e_irih_100, forandring = e_irih_100, tkl8 = tkl8,
+                            lagtraf_mat = IRIH_100)]
+  dat[, SP := CreateMatning(atgdat = atgdat2e_Fikeff, nextatgdat = atgdatne_Fikeff, 
+                            matning = e_spa_100, forandring = eb_spa_100, tkl8 = tkl8,
+                            lagtraf_mat = SPA_100)]
 
   # Create Pavement Type
   dat <- CreatePavementType(dat)
@@ -238,13 +247,43 @@ CreateSurvivalData2019 <- function(dat){
 
   # Select variables
   survvars <- c("ID", "LAN_nr", "AADT", "AADT_heavy", "hom_id2", "langd",
-                "tkl8","PavementType","SP_90p","IR_90p",
+                "tkl8","PavementType","SP","IR",
                 "Region","StoneSize","RoadCategory","RoadWidth","BearingCapacityClass",
                 "SpeedLimit","RoadType","CZON","atgdat2e_Fikeff", "atgdatne_Fikeff")
   dat <- dat[, survvars, with=FALSE]
 
   return(dat)
 }
+
+CreateMatning <- function(atgdat, nextatgdat, matning, forandring, tkl8, lagtraf_mat){
+  senaste_atg_year <- as.numeric(substring(atgdat,1,4))
+  atgdat <- fasttime::fastPOSIXct(atgdat)
+  nextatgdat <- fasttime::fastPOSIXct(nextatgdat)
+
+  # Create matning
+  matning_2020 <- ifelse(is.na(nextatgdat) & tkl8 > 4, matning+forandring*(2020-senaste_atg_year), lagtraf_mat)
+  return(matning_2020)
+}
+
+itShouldCreateMatning <- function(){
+    testdat <- data.frame(atgdat2e_Fikeff = c("2010-12-31","2018-12-31","2017-12-31","2017-12-31","2019-12-31"),
+                          atgdatne_Fikeff = c("2019-12-31","2233-12-31","2019-12-31","2233-12-31","2233-12-31"),
+                          SP = c(NA,10,11,12,13),
+                          IR = c(1,2,3,4,2),
+                          IR_for = c(1,1,1,1,1),
+                          SP_for = c(1,1,1,1,1),
+                          tkl8 = c(1,6,8,8,4),
+                          SP_100 = c(5,5,5,5,5),
+                          IRIH_100 = c(5,1,NA,1,3))
+    
+    res_IR <- CreateMatning(testdat$atgdat2e_Fikeff, testdat$atgdatne_Fikeff, testdat$IR, testdat$IR_for, testdat$tkl8, testdat$IRIH_100)
+    #print(res_IR)
+    gold <- c(5,4,NA,7,3)
+    
+    stopifnot(identical(res_IR, gold))
+}
+
+itShouldCreateMatning()
 
 CreatePavementType <- function(dat){
   setDT(dat)
@@ -287,29 +326,55 @@ CreateHomoData <- function(dat){
   # Group by hom_id2
   dat[, hom_id2 := as.character(hom_id2)]
 
+   # Calculate percentiles
+  dat <- CalculatePercentile(dat, cols = c("hom_id2", "atgdat2e_Fikeff", "atgdatne_Fikeff"))
+
   charcols <- c("hom_id2","LAN_nr","tkl8","PavementType","Region","StoneSize",
-                "RoadCategory","BearingCapacityClass","RoadType","CZON","atgdat2e_Fikeff", "atgdatne_Fikeff")
+                "RoadCategory","BearingCapacityClass","RoadType","CZON","atgdat2e_Fikeff", "atgdatne_Fikeff",
+                "SP_perc", "IR_perc")
   lencols <- c(charcols,"langd")
 
   # Sum section lengths
   lang_dat <- dat[, ..lencols]
   lang_dat <- lang_dat[, sum(langd)*1000, by=charcols]
   setnames(lang_dat, "V1", "langd")
-  #print(head(lang_dat))
 
   # Calculate mean values
-  cols <- c("AADT","AADT_heavy","RoadWidth","SpeedLimit","SP_90p","IR_90p")
+  cols <- c("AADT","AADT_heavy","RoadWidth","SpeedLimit")
   dat_means <- dat[, lapply(.SD, mean), by=charcols, .SDcols = cols]
   dat_means <- left_join(dat_means,lang_dat, by=charcols)
   setDT(dat_means)
 
   dat_means[, RoadWidth := round(RoadWidth, digits = 0)]
   dat_means[, SpeedLimit := RoundUpTo10(SpeedLimit)]
-  #print(head(dat_means))
-  #print(nrow(dat_means))
 
-  return(dat_means)
+  # Filter unique treatment intervals
+  dat_means <- dat_means %>% filter(!duplicated(paste0(pmax(hom_id2, atgdat2e_Fikeff, atgdatne_Fikeff), 
+                                                 pmin(hom_id2, atgdat2e_Fikeff, atgdatne_Fikeff))))
+
+  return(setDT(dat_means))
 }
+
+CalculatePercentile <- function(dat, cols){
+  dat[, c("SP_perc","IR_perc") := Map(f = quantile, x = .SD[, c("SP","IR")], prob = 0.75, na.rm = TRUE), by = cols] 
+  return(dat)
+}
+
+itShouldCalculatePercentilePerGroup <- function(){
+  testdat <- data.frame(hom_id2 = c(1,1,1,2,2,2),
+                        atgdat2e_Fikeff = c("2018-12-31","2018-12-31","2017-12-31","2017-12-31","2017-12-31","2018-12-31"),
+                        atgdatne_Fikeff = c("2019-12-31","2019-12-31","2019-12-31","2019-12-31","2019-12-31","2019-12-31"),
+                        SP = c(NA,11,12,10,12,14),
+                        IR = c(1,2,3,2,4,2))
+  setDT(testdat)
+  cols <- c("hom_id2", "atgdat2e_Fikeff", "atgdatne_Fikeff")
+  res <- CalculatePercentile(testdat, cols)
+  #print(res)
+
+  gold <- c(11.0,11.0,12.0,11.5,11.5,14.0)
+  stopifnot(round(res$SP_perc,digits=1) == gold)
+}
+itShouldCalculatePercentilePerGroup()
 
 CreateAgeEvent <- function(survdat){
   date_cols <- c("atgdat2e_Fikeff", "atgdatne_Fikeff")
@@ -318,32 +383,39 @@ CreateAgeEvent <- function(survdat){
   # Create age variable
   survdat[, age := round(as.numeric(difftime(atgdatne_Fikeff, atgdat2e_Fikeff, unit="weeks")/52.25), digits = 0)]
   survdat[, age_non0 := ifelse(is.na(age),
-                              round(as.numeric(difftime(as.Date("2019-12-31"), atgdat2e_Fikeff, unit="weeks")/52.25), digits = 0),
+                              round(as.numeric(difftime(as.Date("2020-12-31"), atgdat2e_Fikeff, unit="weeks")/52.25), digits = 0),
                               age)]
   survdat[, age_non0 := ifelse(age_non0 == 0, 1, age_non0)]
 
-  # Create event variable "d" if life is ended or maintenance standard surpassed
+  # Create event variable "d_uh" if life is ended and maintenance standard surpassed
   survdat[, d := ifelse(is.na(age), 0, 1)]
-  survdat[, d := ifelse(SP_90p > SP_maint | IR_90p > IRI_maint,
-                        1, d)]
+  survdat[, d_uh := ifelse((SP_perc > SP_maint & is.na(atgdatne_Fikeff)) | (IR_perc > IRI_maint & is.na(atgdatne_Fikeff)), 1, d)]
+
+  # Remove all rows where age_non0 < 3 and d = 1
+  survdat <- survdat[!(d == 1 & age_non0 <3)]
+  # Remove rows with negative age
+  survdat <- survdat[!(age_non0 <=0)]
   
   return(survdat)
 }
 
 itShouldCreateAgeAndEvent <- function(){
-  testdat <- data.frame(atgdat2e_Fikeff = c("2019-11-18","2010-08-17","2000-08-17"),
-                        atgdatne_Fikeff = c("2233-10-15","2019-11-18","2233-10-15"),
-                        SP_90p = c(17,15,30),
-                        IR_90p = c(2,3,6),
-                        IRI_maint = c(3,4,6),
-                        SP_maint = c(20,24,24))
+  testdat <- data.frame(atgdat2e_Fikeff = c("2019-11-18","2010-08-17","2000-08-17","2017-08-17","2017-08-17","2017-08-17"),
+                        atgdatne_Fikeff = c("2233-10-15","2019-11-18","2233-10-15","2233-10-15","2233-10-15","2016-08-17"),
+                        SP_perc = c(17,15,30,24,10,10),
+                        IR_perc = c(2,3,6,7,2,5),
+                        IRI_maint = c(3,4,6,6,5,6),
+                        SP_maint = c(20,24,24,24,20,24))
 
   res <- CreateAgeEvent(survdat = testdat)
+  #print(res)
 
-  gold_d <- c(0,1,1)
-  gold_age <- c(1,9,19)
+  gold_d <- c(0,1,0,0,0)
+  gold_d_uh <- c(0,1,1,1,0)
+  gold_age <- c(1,9,20,3,3)
 
   stopifnot(gold_d == res$d)
+  stopifnot(gold_d_uh == res$d_uh)
   stopifnot(gold_age == res$age_non0)
   print("OK")
 }
