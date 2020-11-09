@@ -5,15 +5,15 @@
 PrepareHomoNVDB <- function(outcols, names_eng, indat, pmsdat, lankom){
   # Extract sections longer than 50 m
   setDT(indat)
-  dat_fil <- indat[shape_leng >= 50]
+  dat_fil <- indat[shape_leng >= 30]
 
     itShouldSummarizePartialNetwork<- function(nvdbnat){
-      stopifnot(round(sum(nvdbnat$shape_leng/1000),2) == 83840.95)
-      stopifnot(nrow(nvdbnat) == 376025)
-      stopifnot(round(mean(nvdbnat$shape_leng),1) == 223)
+      stopifnot(round(sum(nvdbnat$shape_leng/1000),2) == 84020.81)
+      stopifnot(nrow(nvdbnat) == 437189)
+      stopifnot(round(mean(nvdbnat$shape_leng),1) == 192.2)
       stopifnot(round(max(nvdbnat$shape_leng),1) == 10836.9)
-      stopifnot(round(min(nvdbnat$shape_leng),1) == 50)
-      stopifnot(round(sd(nvdbnat$shape_leng),1) == 231.5)
+      stopifnot(round(min(nvdbnat$shape_leng),1) == 30)
+      stopifnot(round(sd(nvdbnat$shape_leng),1) == 223.3)
     }
     itShouldSummarizePartialNetwork(nvdbnat = dat_fil)
 
@@ -48,6 +48,7 @@ PrepareHomoNVDB <- function(outcols, names_eng, indat, pmsdat, lankom){
 
   # If BearingCapacityClass impute 1
   dat[, BearingCapacityClass := ifelse(is.na(BearingCapacityClass),1, BearingCapacityClass)]
+  dat[, BearingCapacityClass := as.factor(BearingCapacityClass)]
 
   # If RoadWidth is missing, impute mean for the municipality & roadtype & roadcategory
   dat <- AddRoadWidthIfMissing(dat = dat) 
@@ -77,6 +78,10 @@ PrepareHomoNVDB <- function(outcols, names_eng, indat, pmsdat, lankom){
   # Add CZON
   dat[, CZON := ifelse(County == 17 | County >=20, "Central", "South")]
   dat[, CZON := ifelse(County >=23, "North", CZON)]
+
+  # Add Age
+  dat[ , Age := lapply(.SD, CalculateAge), .SDcols = "TreatmentDate"]
+  dat <- AddIfAgeMissing(dat = dat)
 
   return(setDT(dat))
 }
