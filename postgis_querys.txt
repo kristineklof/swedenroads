@@ -201,15 +201,15 @@ CREATE TABLE "nvdb_sweden_bel_mat" AS
 ############################
 # Data with percentiles
 
-CREATE TABLE "nvdb_sweden_bel_mat_90perc" AS 
+CREATE TABLE "nvdb_sweden_bel_mat_75perc" AS 
 	(SELECT nb.*, 
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.spar17h) AS spar17h,
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.spar17v) AS spar17v,
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.irih) AS irih,
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
-		percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.spar17h) AS spar17h,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.spar17v) AS spar17v,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irih) AS irih,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
 	FROM "nvdb_nat_bel" AS nb
 	LEFT JOIN "sweden_matdata_2020" AS nm
 	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
@@ -228,3 +228,10 @@ LEFT JOIN "sweden_matdata_2020" AS nm
 ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
 GROUP BY nb.gid
 LIMIT 20
+
+######################################
+# Change projection to SWEREF99
+SELECT UpdateGeometrySRID('public', 'nvdb_sweden_bel_mat_90perc', 'geom', 3006);
+
+# Check projection
+SELECT ST_SRID(geom) FROM nvdb_sweden_bel_mat_90perc LIMIT 1;
