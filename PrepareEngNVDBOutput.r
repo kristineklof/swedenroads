@@ -20,68 +20,89 @@ PrepareHomoNVDB <- function(outcols, names_eng, indat, pmsdat, lankom){
   dat <- dat_fil[, ..outcols]
   names(dat) <- names_eng
   setDT(dat)
+  print(nrow(dat))
 
   dat <- AddPavementType(dat = dat, pmsdat = pmsdat)
+  print(nrow(dat))
 
   # Add County
   dat <- AddCountyIfMissing(dat = dat, lankom = lankom)
+  print(nrow(dat))
 
   # Add RoadType
   dat <- AddRoadType(dat = dat)
+  print(nrow(dat))
 
   # If RoadType is missing, impute "ordinary road"
   dat[, RoadType := ifelse(is.na(RoadType), "Ordinary road", RoadType)]
   dat[, RoadType := as.factor(RoadType)]
   dat[, RoadType := relevel(RoadType, "Ordinary road")]
+  print(nrow(dat))
 
   # If RoadCategory is missing, impute "ordinary road"
   dat[, RoadCategory := ifelse(is.na(RoadCategory), 4, RoadCategory)]
+  print(nrow(dat))
 
   # If AADT is missing, impute mean for the municipality & roadtype & roadcategory
   dat <- AddAADTIfMissing(dat = dat)
+  print(nrow(dat))
 
   # Add traffic class, region, and maintenance standard
   dat <- TrafficClass(dat)
+  print(nrow(dat))
 
   # If PavementType is missing, impute the most common class for tkl8, RoadType, RoadCategory
   dat <- AddPavementTypeIfMissing(dat)
+  print(nrow(dat))
 
   # If BearingCapacityClass impute 1
   dat[, BearingCapacityClass := ifelse(is.na(BearingCapacityClass),1, BearingCapacityClass)]
   dat[, BearingCapacityClass := as.factor(BearingCapacityClass)]
+  print(nrow(dat))
 
   # If RoadWidth is missing, impute mean for the municipality & roadtype & roadcategory
   dat <- AddRoadWidthIfMissing(dat = dat) 
   dat[, RoadWidth := RoadWidth*10]
+  print(nrow(dat))
 
   # If SpeedLimit is missing, impute mean for the municipality & roadtype & roadcategory
   dat <- AddSpeedLimitIfMissing(dat = dat) 
+  print(nrow(dat))
 
   # Add maintenance standard
   dat <- MaintenanceStandard(dat)
+  print(nrow(dat))
 
   # Add region
   dat <- AddRegion(dat)
+  print(nrow(dat))
 
   # Add pavement type and surface class
   dat <- AddSurface(dat)
+  print(nrow(dat))
 
   # If SurfaceClass is missing, impute "Hot mix asphalt" if SurfaceType == 1, else "Surface treated"
   dat[, SurfaceClass := as.character(SurfaceClass)]
   dat[, SurfaceClass := ifelse(is.na(SurfaceClass) & SurfaceType == 1, "Hot mix asphalt", SurfaceClass)]
   dat[, SurfaceClass := ifelse(is.na(SurfaceClass), "Surface treated", SurfaceClass)]
   dat[, SurfaceClass := as.factor(SurfaceClass)]
+  print(nrow(dat))
 
   # Add DoU if missing based on County, tkl8, RoadType, RoadCategory
   dat <- AddDOU2017IfMissing(dat)
+  print(nrow(dat))
 
   # Add CZON
   dat[, CZON := ifelse(County == 17 | County >=20, "Central", "South")]
   dat[, CZON := ifelse(County >=23, "North", CZON)]
+  print(nrow(dat))
 
   # Add Age
   dat[ , Age := lapply(.SD, CalculateAge), .SDcols = "TreatmentDate"]
   dat <- AddIfAgeMissing(dat = dat)
+  print(nrow(dat))
+
+  dat <- unique(dat, by=c("Objectid"))
 
   return(setDT(dat))
 }
@@ -129,9 +150,9 @@ AddPavementType <- function(dat, pmsdat){
 AddSurface <- function(dat){
   setDT(dat)
   # Add surface
-  dat[, SurfaceClass := ifelse(PavementType == "Varm" | PavementType == "Varm stenrik" | 
+  dat[, SurfaceClass := ifelse(PavementType == "Varm" | PavementType == "Varm stenrik" | PavementType == "Ytbehandling på bituminöst underlag" | 
                           PavementType == "Tunnskikt" | PavementType == "Halvvarm" , "Hot mix asphalt", NA)]
-  dat[, SurfaceClass  := ifelse(PavementType == "Indränkt makadam" | PavementType == "Ytbehandling på bituminöst underlag" | 
+  dat[, SurfaceClass  := ifelse(PavementType == "Indränkt makadam" | 
                           PavementType == "Ytbehandling på grus" | PavementType == "Övrigt" | 
                           PavementType == "Försegling", "Surface treated", SurfaceClass)]
   dat[, SurfaceClass  := ifelse(SurfaceType == 5, "Concrete", SurfaceClass)]
@@ -140,10 +161,3 @@ AddSurface <- function(dat){
 
   return(setDT(dat))
 }
-
-
-
-
-
-
-
