@@ -182,6 +182,8 @@ UNION SELECT * FROM "vasternorrland-matdata-2020"
 UNION SELECT * FROM "vastmanland-matdata-2020" 
 UNION SELECT * FROM "vastra-gotaland-matdata-2020"
 
+# Create primary key
+ALTER TABLE sweden_matdata_2020 ADD COLUMN ID SERIAL PRIMARY KEY;
 
 CREATE TABLE "nvdb_sweden_bel_mat" AS 
 	(SELECT nb.*, 
@@ -201,7 +203,22 @@ CREATE TABLE "nvdb_sweden_bel_mat" AS
 ############################
 # Data with percentiles
 
-CREATE TABLE "nvdb_sweden_bel_mat_75perc" AS 
+CREATE TABLE "nvdb_nat_bel_201104" AS 
+	(SELECT DISTINCT ON (nv.objectid)
+		nv.*,
+		nb_all.beldatum,
+		nb_all.beltyp,
+		nb_all.tillvmetod,
+		nb_all.utlmetod,
+		nb_all.riktning,
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)) as intersect_len
+	FROM "nvdb_nat_201104" AS nv
+	LEFT JOIN "sweden_belaggning_2020" AS nb_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nb_all.geom)
+	ORDER BY nv.objectid, intersect_len DESC, nb_all.riktning
+)
+
+CREATE TABLE "nvdb_sweden_bel_mat_75perc_201104" AS 
 	(SELECT nb.*, 
 		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
 		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
@@ -210,11 +227,12 @@ CREATE TABLE "nvdb_sweden_bel_mat_75perc" AS
 		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irih) AS irih,
 		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
 		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
-	FROM "nvdb_nat_bel" AS nb
+	FROM "nvdb_nat_bel_201104" AS nb
 	LEFT JOIN "sweden_matdata_2020" AS nm
 	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
 	GROUP BY nb.gid)
 
+# Check first 20 rows
 SELECT nb.*, 
 	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
 	percentile_disc(0.9) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
@@ -235,3 +253,96 @@ SELECT UpdateGeometrySRID('public', 'nvdb_sweden_bel_mat_90perc', 'geom', 3006);
 
 # Check projection
 SELECT ST_SRID(geom) FROM nvdb_sweden_bel_mat_90perc LIMIT 1;
+
+################################
+# Union to survdat
+CREATE TABLE survdat AS 
+SELECT * FROM "survdat_1" 
+UNION SELECT * FROM "survdat_2" 
+UNION SELECT * FROM "survdat_3" 
+UNION SELECT * FROM "survdat_4" 
+UNION SELECT * FROM "survdat_5" 
+UNION SELECT * FROM "survdat_6" 
+UNION SELECT * FROM "survdat_7" 
+UNION SELECT * FROM "survdat_8" 
+UNION SELECT * FROM "survdat_9" 
+UNION SELECT * FROM "survdat_10" 
+
+CREATE INDEX survdat_idx ON survdat USING GIST (geom);
+ALTER TABLE survdat ADD COLUMN id serial primary key;
+
+#################################
+# Create linestrings from points
+
+SELECT surv.hom_id2, ST_MakeLine(surv.geom) As geom
+	FROM (SELECT hom_id2, lp_st_201, geom
+			FROM survdat ORDER BY hom_id2, lp_st_201) As surv
+	GROUP BY hom_id2
+	LIMIT 160
+
+CREATE TABLE "homid2_lines" AS 
+	(SELECT surv.hom_id2, ST_MakeLine(surv.geom) As geom
+	FROM (SELECT hom_id2, lp_st_201, geom
+			FROM survdat ORDER BY hom_id2, lp_st_201) As surv
+	GROUP BY hom_id2)
+
+CREATE INDEX hom_idx ON homid2_lines USING GIST (geom);
+ALTER TABLE homid2_lines ADD PRIMARY KEY (hom_id2);
+
+ALTER TABLE survdat
+ADD CONSTRAINT survdat_fkey
+FOREIGN KEY (hom_id2) 
+REFERENCES homid2_lines (hom_id2);
+
+#################################################################
+# Create NVDB data with surv values included
+
+CREATE TABLE "surv_lines" AS
+	(SELECT DISTINCT ON (hom.hom_id2)
+		hom.*,
+		pms.beltyp,
+		pms.omfttnn,
+		pms.tjocklk,
+		pms.mxstnst,
+		pms.entrprn,
+		pms.bindmdl,
+		pms.lroll,
+	 	pms.riktnng,
+		pms.atgd1_f,
+		pms.atgd2_f,
+		pms.atgdt_f,
+		pms.atgard2,
+		pms.age_nn0
+	FROM "homid2_lines" AS hom
+	LEFT JOIN "survdat" AS pms
+	ON hom.hom_id2 = pms.hom_id2
+	ORDER BY hom.hom_id2, atgd2_f DESC, pms.riktnng)
+
+CREATE INDEX survlines_idx ON surv_lines USING GIST (geom);
+ALTER TABLE surv_lines ADD PRIMARY KEY (hom_id2);
+
+CREATE TABLE "nvdb_surv_sweden_75perc" AS 
+	(SELECT DISTINCT ON (nv.objectid)
+		nv.*,
+		pms.hom_id2,
+		pms.beltyp AS survbeltyp,
+		pms.omfttnn,
+		pms.tjocklk,
+		pms.mxstnst,
+		pms.entrprn,
+		pms.bindmdl,
+		pms.lroll,
+		pms.riktnng,
+		pms.atgard2,
+		pms.atgd1_f,
+		pms.atgd2_f,
+		pms.atgdt_f,
+		pms.age_nn0,
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,3,'endcap=flat join=round'), pms.geom)) as pms_intersect
+	FROM "nvdb_sweden_bel_mat_75perc_201104" AS nv
+	LEFT JOIN "surv_lines" AS pms
+	ON ST_Intersects(ST_Buffer(nv.geom,3,'endcap=flat join=round'), pms.geom) AND pms.riktnng = 1
+	ORDER BY nv.objectid, pms_intersect DESC);
+
+CREATE INDEX nvdb_surv_sweden_idx ON nvdb_surv_sweden_75perc USING GIST (geom);
+ALTER TABLE nvdb_surv_sweden_75perc ADD PRIMARY KEY (objectid);
