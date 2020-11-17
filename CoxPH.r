@@ -1,12 +1,12 @@
 #=================================================================#
 #                      This file creates the 
-#           AFT survival regression to predict service lives
+#          Cox survival regression to predict service lives
 #=================================================================#
 
-AFTRegression <- function(dat,distribution){
-    reg_d_uh <- survreg(Surv(age_non0,d_uh) ~ strata(tkl8) +
-                        AADT +
-                        AADT_heavy +
+CoxPH <- function(dat){
+    cox_reg <- coxph(Surv(age_non0,d_uh) ~ strata(tkl8) +
+                        #AADT +
+                        #AADT_heavy +
                         PavementType + 
                         Region +
                         #StoneSize +
@@ -14,8 +14,7 @@ AFTRegression <- function(dat,distribution){
                         RoadType  +
                         RoadWidth +
                         SpeedLimit,
-                      data=dat,
-                      dist=distribution)
+                      data=dat)
 
-    return(reg_d_uh)
+    return(cox_reg)
 }
