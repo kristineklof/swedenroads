@@ -64,7 +64,7 @@ wei_reg_d <- survreg(Surv(age_non0 ,d) ~ strata(tkl8) +
                         AADT +
                         AADT_heavy +
                         PavementType + 
-                        CZON +
+                        Region +
                         #StoneSize +
                         BearingCapacityClass +
                         RoadType  +
@@ -92,6 +92,67 @@ summary(wei_reg_d_uh)
 exp(wei_reg_d_uh$coefficients)
 (exp(wei_reg_d_uh$coefficients)-exp(wei_reg_d$coefficients))
 
+# With UH standard & coverage
+surv_cover <- copy(lan_surv_dt)
+surv_cover[, Kat_omf := ifelse(omfattning %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning"), "Fläckvis", "Heltäckande")]
+surv_cover[, Kat_omf := ifelse(is.na(omfattning) | omfattning == "NULL", NA, Kat_omf)]
+surv_cover[, Kat_omf := as.factor(Kat_omf)]
+surv_cover[, Kat_omf  := relevel(Kat_omf, "Heltäckande")]
+table(surv_cover$Kat_omf, surv_cover$d_uh)
+
+wei_reg_d_uh_omf <- survreg(Surv(age_non0,d_uh) ~ strata(tkl8) +
+                        AADT +
+                        AADT_heavy +
+                        PavementType +
+                        Kat_omf + 
+                        Region +
+                        #StoneSize +
+                        BearingCapacityClass +
+                        RoadType  +
+                        RoadWidth +
+                        SpeedLimit,
+                      data=surv_cover,
+                      dist="weibull")
+summary(wei_reg_d_uh_omf)
+exp(wei_reg_d_uh_omf$coefficients)
+
+
+loglog_reg_d_uh <- survreg(Surv(age_non0,d_uh) ~ strata(tkl8) +
+                        AADT +
+                        AADT_heavy +
+                        PavementType + 
+                        Region +
+                        #StoneSize +
+                        BearingCapacityClass +
+                        RoadType  +
+                        RoadWidth +
+                        SpeedLimit,
+                      data=lan_surv_dt,
+                      dist="loglogistic")
+summary(loglog_reg_d_uh)
+exp(loglog_reg_d_uh$coefficients)
+
+
+log_reg_d_uh <- survreg(Surv(age_non0,d_uh) ~ strata(tkl8) +
+                        AADT +
+                        AADT_heavy +
+                        PavementType + 
+                        Region +
+                        #StoneSize +
+                        BearingCapacityClass +
+                        RoadType  +
+                        RoadWidth +
+                        SpeedLimit,
+                      data=lan_surv_dt,
+                      dist="lognormal")
+summary(log_reg_d_uh)
+exp(log_reg_d_uh$coefficients)
+
+# Compare AIC
+extractAIC(loglog_reg_d_uh)
+extractAIC(wei_reg_d_uh)
+extractAIC(log_reg_d_uh) # lognormal has the lowest AIC
+
 # Cox proportional hazards model
 cox_reg <- coxph(Surv(age_non0,d_uh) ~ strata(tkl8) +
                         #AADT +
@@ -106,6 +167,9 @@ cox_reg <- coxph(Surv(age_non0,d_uh) ~ strata(tkl8) +
                       data=lan_surv_dt)
 summary(cox_reg)
 exp(cox_reg$coefficients)
+
+ed1 <- coxed(cox_reg, method="npsf")
+head(ed1$exp.dur)
 
 # Survival curves by tkl8
 fit <- survfit(Surv(age_non0,d_uh) ~ tkl8, data = lan_surv_dt)
@@ -152,3 +216,45 @@ wei_reg_2011 <- survreg(Surv(age_non0 ,d) ~ strata(tkl8) +
                       dist="weibull")
 summary(wei_reg_2011)
 exp(wei_reg_2011$coefficients)
+
+
+
+# Weibull survival curves
+s <- with(lan_surv_dt,Surv(age_non0,d_uh) )
+fKM <- survfit(s ~ tkl8, data= lan_surv_dt)
+sPar <- survreg(s ~ strata(tkl8) + tkl8, dist='lognormal', data= lan_surv_dt)
+
+seql <- length(seq(.01,.99,by=.01))
+df <- data.frame(y = rep(rev(seq(.01,.99,by=.01)),8),
+                 tkl8 = c(rep(1,seql),
+                        rep(2,seql),
+                        rep(3,seql),
+                        rep(4,seql),
+                        rep(5,seql),
+                        rep(6,seql),
+                        rep(7,seql),
+                        rep(8,seql)),
+                time = rep(NA,seql*8))
+
+predlist <- list()
+for(i in 1:8){
+  predlist[[i]] = predict(sPar, newdata=list(tkl8=i),type="quantile",p=seq(.01,.99,by=.01))
+}
+
+df$time <- unlist(predlist)
+nrow(df)
+head(df)
+df$tkl8 <- as.character(df$tkl8)
+
+p = ggsurvplot(fKM, data = lan_surv_dt, color = "strata", linetype = "solid", risk.table = "percentage", break.x.by = 5, palette="Set2") 
+print(p)
+p$plot = p$plot + geom_line(data=df, aes(x=time, y=y, group=tkl8))
+print(p)
+
+#Plot survival for both sexes and show exponential hazard estimates
+f <- npsurv(s ~ tkl8, data= lan_surv_dt)
+survplot(f, aehaz=TRUE)
+#Check for log-normal and log-logistic fits
+survplot(f, fun=qnorm, ylab="Inverse Normal Transform")
+survplot(f, fun=function(y)log(y/(1-y)), ylab="Logit S(t)")
+survplot(f, logt=TRUE, loglog=TRUE, data=) 

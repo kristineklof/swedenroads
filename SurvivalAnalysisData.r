@@ -221,10 +221,10 @@ CreateSurvivalData2019 <- function(dat){
   dat[, Region := ifelse(LAN_nr == 6 | LAN_nr == 7 | LAN_nr == 8 | LAN_nr == 10 | LAN_nr == 11 | LAN_nr == 12, "Syd", Region)] 
 
   # Create IRI mean and Spar mean OBS BEHÖVER NY DATA
-  dat[, IR := CreateMatning(atgdat = atgdat2e_Fikeff, nextatgdat = atgdatne_Fikeff, 
-                            matning = e_irih_100, forandring = e_irih_100, tkl8 = tkl8,
+  dat[, IR := CreateMatningIR(atgdat = atgdat2e_Fikeff, nextatgdat = atgdatne_Fikeff, 
+                            matning = e_irih_100, forandring = eb_irih_100, tkl8 = tkl8,
                             lagtraf_mat = IRIH_100)]
-  dat[, SP := CreateMatning(atgdat = atgdat2e_Fikeff, nextatgdat = atgdatne_Fikeff, 
+  dat[, SP := CreateMatningSP(atgdat = atgdat2e_Fikeff, nextatgdat = atgdatne_Fikeff, 
                             matning = e_spa_100, forandring = eb_spa_100, tkl8 = tkl8,
                             lagtraf_mat = SPA_100)]
 
@@ -247,15 +247,16 @@ CreateSurvivalData2019 <- function(dat){
 
   # Select variables
   survvars <- c("ID", "LAN_nr", "AADT", "AADT_heavy", "hom_id2", "langd",
-                "tkl8","PavementType","SP","IR",
+                "tkl8","PavementType","SP","IR", "Beltyp", "omfattning", "Atgard2",
+                "MaxStenStorlek", "Tjocklek", "Bindemedel", "Entreprenor", "LROLL","Riktning",
                 "Region","StoneSize","RoadCategory","RoadWidth","BearingCapacityClass",
-                "SpeedLimit","RoadType","CZON","atgdat2e_Fikeff", "atgdatne_Fikeff")
+                "SpeedLimit","RoadType","CZON","atgdat1e_Fikeff","atgdat2e_Fikeff", "atgdatne_Fikeff")
   dat <- dat[, survvars, with=FALSE]
 
   return(dat)
 }
 
-CreateMatning <- function(atgdat, nextatgdat, matning, forandring, tkl8, lagtraf_mat){
+CreateMatningSP <- function(atgdat, nextatgdat, matning, forandring, tkl8, lagtraf_mat){
   senaste_atg_year <- as.numeric(substring(atgdat,1,4))
   atgdat <- fasttime::fastPOSIXct(atgdat)
   nextatgdat <- fasttime::fastPOSIXct(nextatgdat)
@@ -265,20 +266,30 @@ CreateMatning <- function(atgdat, nextatgdat, matning, forandring, tkl8, lagtraf
   return(matning_2020)
 }
 
+CreateMatningIR <- function(atgdat, nextatgdat, matning, forandring, tkl8, lagtraf_mat){
+  senaste_atg_year <- as.numeric(substring(atgdat,1,4))
+  atgdat <- fasttime::fastPOSIXct(atgdat)
+  nextatgdat <- fasttime::fastPOSIXct(nextatgdat)
+
+  # Create matning
+  matning_2020 <- ifelse(is.na(nextatgdat) & tkl8 > 4 & (2020-senaste_atg_year) <= 5, matning+forandring*(2020-senaste_atg_year), lagtraf_mat)
+  return(matning_2020)
+}
+
 itShouldCreateMatning <- function(){
-    testdat <- data.frame(atgdat2e_Fikeff = c("2010-12-31","2018-12-31","2017-12-31","2017-12-31","2019-12-31"),
+    testdat <- data.frame(atgdat2e_Fikeff = c("2010-12-31","2018-12-31","2017-12-31","2014-12-31","2018-12-31"),
                           atgdatne_Fikeff = c("2019-12-31","2233-12-31","2019-12-31","2233-12-31","2233-12-31"),
                           SP = c(NA,10,11,12,13),
                           IR = c(1,2,3,4,2),
                           IR_for = c(1,1,1,1,1),
                           SP_for = c(1,1,1,1,1),
-                          tkl8 = c(1,6,8,8,4),
+                          tkl8 = c(1,6,8,8,5),
                           SP_100 = c(5,5,5,5,5),
                           IRIH_100 = c(5,1,NA,1,3))
     
-    res_IR <- CreateMatning(testdat$atgdat2e_Fikeff, testdat$atgdatne_Fikeff, testdat$IR, testdat$IR_for, testdat$tkl8, testdat$IRIH_100)
+    res_IR <- CreateMatningIR(testdat$atgdat2e_Fikeff, testdat$atgdatne_Fikeff, testdat$IR, testdat$IR_for, testdat$tkl8, testdat$IRIH_100)
     #print(res_IR)
-    gold <- c(5,4,NA,7,3)
+    gold <- c(5,4,NA,1,4)
     
     stopifnot(identical(res_IR, gold))
 }
@@ -329,8 +340,9 @@ CreateHomoData <- function(dat){
    # Calculate percentiles
   dat <- CalculatePercentile(dat, cols = c("hom_id2", "atgdat2e_Fikeff", "atgdatne_Fikeff"))
 
-  charcols <- c("hom_id2","LAN_nr","tkl8","PavementType","Region","StoneSize",
-                "RoadCategory","BearingCapacityClass","RoadType","CZON","atgdat2e_Fikeff", "atgdatne_Fikeff",
+  charcols <- c("hom_id2","LAN_nr","tkl8","PavementType","Region","StoneSize", "Beltyp", "omfattning", "Atgard2",
+                "MaxStenStorlek", "Tjocklek", "Bindemedel", "Entreprenor", "LROLL","Riktning",
+                "RoadCategory","BearingCapacityClass","RoadType","CZON","atgdat1e_Fikeff","atgdat2e_Fikeff", "atgdatne_Fikeff",
                 "SP_perc", "IR_perc")
   lencols <- c(charcols,"langd")
 
