@@ -2,7 +2,8 @@
 #            Swedenroads: create dataset for analysis 
 #=================================================================#
 source("LoadInstall.R")
-deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime","survminer","remotes","sp", "rgdal", "rpostgis", "RPostgres")
+deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime","survminer",
+          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", "openxlsx")
 LoadInstall(deps)
 options(scipen=999)
 
@@ -15,6 +16,7 @@ source("QClassFunction.r", encoding = 'UTF-8')
 source("AFTRegression.r", encoding = 'UTF-8')
 source("CoxPH.r", encoding = 'UTF-8')
 source("CombineBeltyp.r", encoding = 'UTF-8')
+source("CreatePCI.r", encoding = 'UTF-8')
 #source("ImportAndPreparePMSData.r", encoding = 'UTF-8')
 
 # Import survival data
@@ -169,18 +171,18 @@ sum(outdat_eng_life$rut_max17_perc > outdat_eng_life$SP_maint, na.rm=TRUE)/nrow(
 sum(outdat_eng_life$rut_max15_perc > outdat_eng_life$SP_maint, na.rm=TRUE)/nrow(outdat_eng_life)
 sum(outdat_eng_life$IRI_l_perc > outdat_eng_life$IRI_maint, na.rm=TRUE)/nrow(outdat_eng_life)
 sum(outdat_eng_life$IRI_r_perc > outdat_eng_life$IRI_maint, na.rm=TRUE)/nrow(outdat_eng_life)
-sum(outdat_eng_life$rut_max17_perc > outdat_eng_life$SP_maint | outdat_eng_life$rut_max15_perc > outdat_eng_life$SP_maint | outdat_eng_life$IRI_r_perc > outdat_eng_life$IRI_maint | outdat_eng_life$IRI_l_perc > outdat_eng_life$IRI_maint, na.rm=TRUE)/nrow(outdat_eng_life)
+sum(outdat_eng_life$rut_max17_perc > outdat_eng_life$SP_maint | outdat_eng_life$rut_max15_perc > outdat_eng_life$SP_maint | outdat_eng_life$IRI_r_perc > outdat_eng_life$IRI_maint, na.rm=TRUE)/nrow(outdat_eng_life)
 
 maintstandlengthtkl <- outdat_eng_life %>%
               group_by(tkl8) %>%
               summarise(grouplen = sum(Length)/1000,
-                        lenabove= sum(Length[rut_max17_perc > SP_maint | rut_max15_perc > SP_maint | IRI_r_perc > IRI_maint | IRI_l_perc > IRI_maint], na.rm = TRUE)/1000/grouplen)
+                        lenabove= sum(Length[(rut_max17_perc > SP_maint & RoadWidth > 60) | (rut_max15_perc > SP_maint & RoadWidth <= 60) | IRI_r_perc > IRI_maint], na.rm = TRUE)/1000/grouplen)
 print(maintstandlengthtkl)
 
 maintstandlengthdou <- outdat_eng_life %>%
               group_by(DoU2017) %>%
               summarise(grouplen = sum(Length)/1000,
-                        lenabove= sum(Length[rut_max17_perc > SP_maint | rut_max15_perc > SP_maint | IRI_r_perc > IRI_maint | IRI_l_perc > IRI_maint], na.rm = TRUE)/1000/grouplen)
+                        lenabove= sum(Length[(rut_max17_perc > SP_maint & RoadWidth > 60) | (rut_max15_perc > SP_maint & RoadWidth <= 60)| IRI_r_perc > IRI_maint], na.rm = TRUE)/1000/grouplen)
 print(maintstandlengthdou)
 
 # Check missing measurements - about 8 percent of road network has missing measurement values
@@ -262,3 +264,51 @@ qclasslengthtkl <- outdat_eng_life %>%
 print(qclasslengthtkl, n=Inf)
 
 qclasslength$comp <- (qclasslength$prop - qclasslength_first$prop)
+
+
+#############################################################################
+# Calculate PCI
+
+swedt <- st_read("C:/Users/winte/Swedenroads_outputs/sweden_v3_201116.shp")
+setDT(swedt)
+head(swedt)
+unique(swedt$RoadTyp)
+
+swedt_PCI <- CreatePCI(swedt)
+swedt_PCI <- PCIClass(swedt_PCI)
+
+exp <- c("Objectd", "PCI")
+id_pci <- swedt_PCI[, ..exp]
+write.xlsx(id_pci, "C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx")
+
+nrow(swedt_PCI[IRI_Index > 100])
+
+mean(swedt_PCI$PCI)
+mean(swedt_PCI$IRI_Index, na.rm=TRUE)
+mean(swedt_PCI$Rut_Index, na.rm=TRUE)
+mean(swedt_PCI$RMS_Index, na.rm=TRUE)
+
+quantile(swedt_PCI$PCI, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(swedt_PCI$IRI_Index, probs = c(0, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(swedt_PCI$Rut_Index, probs = c(0, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(swedt_PCI$RMS_Index, probs = c(0, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+
+pclasslength <- swedt_PCI %>%
+              group_by(PCIClass) %>%
+              summarise(grouplen = sum(Length)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen))
+print(pclasslength)
+
+pclasslengthtkl <- swedt_PCI %>%
+              group_by(tkl8, PCIClass) %>%
+              summarise(grouplen = sum(Length)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen))
+print(pclasslengthtkl, n=Inf)
+
+pclasslengthdou <- swedt_PCI %>%
+              group_by(DoU2017, PCIClass) %>%
+              summarise(grouplen = sum(Length)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen))
+print(pclasslengthdou, n=Inf)
+
+# vscode://vscode.github-authentication/did-authenticate?windowid=1&code=931650176fe14d005e9d&state=f946fae0-8930-4a19-a358-43ff4dba1639
