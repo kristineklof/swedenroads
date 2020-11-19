@@ -18,7 +18,7 @@ SetClasses <- function(dat){
   dat[, QClass := if_else_na(RemainingServiceLife < 0, 1, QClass)]
   dat[, QClass := if_else_na((RoadType == "Motorway" & tkl8 >= 7 & QClass <3) | (tkl8 >= 7 & QClass <3), 3, QClass)]
   dat[, QClass := if_else_na((RoadWidth > 60 & rut_max17_perc > SP_maint) | (RoadWidth <= 60 & rut_max15_perc > SP_maint) | 
-                              IRI_r_perc > IRI_maint | IRI_l_perc > IRI_maint, 1, QClass)]
+                              IRI_r_perc > IRI_maint, 1, QClass)]
 
   return(dat)
 }
