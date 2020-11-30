@@ -3,13 +3,14 @@
 #=================================================================#
 source("LoadInstall.R")
 deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime","survminer",
-          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", "openxlsx")
+          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", "openxlsx", "writexl")
 LoadInstall(deps)
 options(scipen=999)
 
 #source("ImportNVDB_Data.R")
 source("SurvivalAnalysisData.r", encoding = 'UTF-8')
 source("PrepareEngNVDBOutput.r", encoding = 'UTF-8')
+source("PrepareHomoSwe.r", encoding = 'UTF-8')
 source("ImputeMissingData.r", encoding = 'UTF-8')
 source("Age_NVDBData.r", encoding = 'UTF-8')
 source("QClassFunction.r", encoding = 'UTF-8')
@@ -32,7 +33,7 @@ stopifnot(round(sum(pmsunique$langd)/1000) == 103582)
 lankom <- fread("C:/Users/winte/OneDrive/Documents/salbo.ai/Transportföretagen/Data/LänKommun.csv")
 
 # Import NVDB data
-nvdb_bel_mat_org <- st_read("C:/Users/winte/Swedenroads_homo_v2/nvdb_surv_sweden_75perc.shp")
+nvdb_bel_mat_org <- st_read("C:/Users/winte/Swedenroads_homo_v2/nvdb_surv_sweden_75perc_matdatum.shp")
 stopifnot(nrow(nvdb_bel_mat_org) == 973518)
 stopifnot(length(unique(nvdb_bel_mat_org$objectid)) == 973518)
 setDT(nvdb_bel_mat_org)
@@ -42,7 +43,10 @@ str(nvdb_bel_mat_org)
 table(nvdb_bel_mat_org$omfttnn)
 unique(nvdb_bel_mat_org$omfttnn)
 unique(nvdb_bel_mat_org$survbeltyp)
-nvdb_bel_mat_org[is.na(atgdt_f)]
+unique(nvdb_bel_mat_org$beltyp)
+nrow(nvdb_bel_mat_org[is.na(matdatum)])
+min(nvdb_bel_mat_org$matdatum, na.rm =TRUE)
+max(nvdb_bel_mat_org$matdatum, na.rm =TRUE)
 stopifnot(round(nrow(nvdb_bel_mat_org[is.na(beldatum)])/(nrow(nvdb_bel_mat_org)),digits=2) == 0.13) # 13 percent missing treatment date
 
 #####################################################################################
@@ -62,19 +66,79 @@ nrow(nvdb_bel_mat[!is.na(atgd2_f) & beldatum != atgd2_f])/nrow(nvdb_bel_mat)
 ## Select and rename columns
 outcols <- c("objectid", "barig_64","f_hogst_22","lever_292","adt_f_117","adt_l_115","adt_a_113","matar_121","slitl_25","bredd_156",
             "kateg_380","huvud_13","lanst_15","vagty_41","kommunnr","shape_leng","beldatum","beltyp","tillvmetod","utlmetod", "omfttnn",
-            "sparm17","sparm15","spar17h", "spar17v","irih", "iriv","kantdjup", "geometry")
+            "sparm17","sparm15","spar17h", "spar17v","irih", "iriv","kantdjup","matdatum","geometry")
 
 names_eng <- c("Objectid","BearingCapacityClass","SpeedLimit","DoU2017","AADT","AADT_heavy","AADT_axle","AADT_measurement_year","SurfaceType","RoadWidth",
                 "RoadCategory","Road_Number","County","RoadType","Municipality","Length","TreatmentDate","Treatment","ManufactureMethod","PavingMethod", "Coverage",
-                "rut_max17_perc","rut_max15_perc","rut_r_perc","rut_l_perc","IRI_r_perc","IRI_l_perc","EdgeDepth","geometry")
+                "rut_max17_perc","rut_max15_perc","rut_r_perc","rut_l_perc","IRI_r_perc","IRI_l_perc","EdgeDepth","MeasurementDate","geometry")
 
 names_swe <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_tung","ÅDT_axel","ÅDT_mätår","Slitlager","Vägbredd",
-                "Vägnummer","Vägtyp","Län_nr","Vägtyp","Kommun_nr","Längd","Beläggningsdatum","Beläggning","TillverkningsMetod","UtläggningsMetod", "Omfattning",
-                "Avg_sparmax17","Avg_spar_max15","Avg_spar_h","Avg_spar_l","Avg_IRI_h","Avg_IRI_v","Avg_kantdjup","geometry")
+                "Vägkategori","Vägnummer","Län_nr","Vägtyp","Kommun_nr","Längd","Beläggningsdatum","Beläggning","TillverkningsMetod","UtläggningsMetod", "Omfattning",
+                "Sparmax17","Spar_max15","Spar_h","Spar_l","IRI_h","IRI_v","Kantdjup","Mätdatum","geometry", "Beläggningstyp", "Länsnamn", "Kommunnamn", "Trafikklass",
+                "IRI_underhållsstandard", "Spårdjup_underhållsstandard", "Region", "Beläggningsklass", "Ålder", "Förväntad_medianålder", "Förväntad_75p_ålder", "FörväntadLivslängd",
+                "ÅterståendeLivslängd","QClass","IRI_Index","RMS_Index","Rut_index","PCI","PCIKlass")
 
 outdat_eng <- PrepareHomoNVDB(outcols = outcols, names_eng = names_eng, indat = nvdb_bel_mat, pmsdat = lans_dt, lankom = lankom)
 print(head(outdat_eng))
-                 
+
+outdat_swe <- PrepareHomoSwe(outcols = outcols, names_eng = names_eng, names_swe = names_swe, indat = nvdb_bel_mat, pmsdat = lans_dt, survdat=lan_surv_dt, lankom = lankom)
+print(head(outdat_swe))
+
+#####################################################################################
+# Check missing data in Swedish dataset
+stopifnot(sum(is.na(outdat_swe$Län_nr)) == 0)
+stopifnot(sum(is.na(outdat_swe$ÅDT_fordon)) == 42)
+stopifnot(sum(is.na(outdat_swe$Vägtyp)) == 7)
+stopifnot(sum(is.na(outdat_swe$Ålder)) == 34629)
+stopifnot(sum(is.na(outdat_swe$Beläggning)) == 34629)
+stopifnot(sum(is.na(outdat_swe$PCIKlass)) == 33028)
+stopifnot(sum(is.na(outdat_swe$Bärighetsklass)) == 491)
+stopifnot(sum(is.na(outdat_swe$FörväntadLivslängd)) == 36284)
+stopifnot(sum(is.na(outdat_swe$Hastighet)) == 535)
+stopifnot(sum(is.na(outdat_swe$Vägbredd)) == 55)
+
+stopifnot(round(sum(outdat_swe$Längd[is.na(outdat_swe$Beläggning)])/sum(outdat_swe$Längd),digits=2) == 0.06)
+
+outdat_swe[, Spårdjup := ifelse(Vägbredd > 6, Sparmax17, Spar_max15)]
+outdat_swe[, IRI := IRI_h]
+outdat_swe[, ÅDT_mätår := substring(as.character(ÅDT_mätår),1,4)]
+outdat_swe[, ÅDT_mätår := as.integer(ÅDT_mätår)]
+outdat_swe[, Längd := round(Längd, digits = 0)]
+outdat_swe[, Vägtyp := as.factor(Vägtyp)]
+new_vag_levels <- c("1", "2", "3", "4", "5")
+setattr(outdat_swe$Vägtyp,"levels",new_vag_levels)
+outdat_swe[, Vägtyp := as.integer(Vägtyp)]
+saveRDS(outdat_swe, "C:/Users/winte/Swedenroads_outputs/outdat_swe.rds")
+
+
+# Select variables in Swedish dataset
+keeps <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_tung","ÅDT_mätår","Vägbredd",
+                "Vägnummer","Vägkategori","Vägtyp","Längd","Beläggningsdatum","Beläggningstyp", 
+                "Spårdjup","IRI","Mätdatum","geometry", "Län_nr", "Kommun_nr", "Trafikklass",
+                "IRI_underhållsstandard", "Spårdjup_underhållsstandard", "Region", "Ålder", "FörväntadLivslängd",
+                "ÅterståendeLivslängd","PCI","PCIKlass")
+
+outdat_swe_small <- outdat_swe[, ..keeps]
+head(outdat_swe_small)
+
+mean(outdat_swe_small$Ålder, na.rm=TRUE)
+quantile(outdat_swe_small$Ålder, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm=TRUE) # quartile
+quantile(outdat_swe_small$ÅterståendeLivslängd, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm=TRUE) # quartile
+
+quantile(outdat_swe_small$PCI, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+
+pclasslength <- outdat_swe_small %>%
+              group_by(PCIKlass) %>%
+              summarise(grouplen = sum(Längd)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen))
+print(pclasslength)
+
+pclasslengthdou <- outdat_swe_small %>%
+              group_by(DoU2017, PCIKlass) %>%
+              summarise(grouplen = sum(Length)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen))
+print(pclasslengthdou, n=Inf)
+
 #####################################################################################
 # Handeling of missing data
 stopifnot(sum(is.na(outdat_eng$County)) == 0)
@@ -102,6 +166,7 @@ stopifnot(nrow(unique(outdat_eng, by=c("Objectid")))==437189)
 
 #####################################################################################
 outdat_eng <- readRDS("C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
+nrow(outdat_eng[MeasurementDate < as.Date("2015-01-01")])
 
 # Add predicted service life
 outdat_eng_life <- CreateServiceLifeData(dat = outdat_eng, survdat=lan_surv_dt, metod = "AFT", 
@@ -203,6 +268,7 @@ quantile(outdat_eng_life$RemainingServiceLife, probs = c(0, 0.25, 0.5, 0.75, 1),
 # Compare with survival data
 survdat <- lan_surv_dt[is.na(atgdatne_Fikeff) & order(hom_id2,-langd)]
 survdat <- survdat[, .SD[1], hom_id2]
+head(survdat)
 stopifnot(round(sum(survdat$langd)/1000, digits=0) == 98467)
 stopifnot(round(mean(survdat$age_non0, na.rm=TRUE), digits = 1) == 13.3)
 quantile(survdat$age_non0, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm=TRUE) # quartile
@@ -229,7 +295,7 @@ stopifnot(length(outdat_eng_life_shape$Objectid) == 437189)
 print(head(outdat_eng_life_shape))
 
 # Export as shapefile
-st_write(outdat_eng_life_shape, "C:/Users/winte/Swedenroads_outputs/sweden_v3_201116.shp", driver="ESRI Shapefile", append=FALSE) 
+st_write(outdat_eng_life_shape, "C:/Users/winte/Swedenroads_outputs/sweden_v3_201119.shp", driver="ESRI Shapefile", append=FALSE) 
 
 # Compare last output
 firstversion <- st_read("C:/Users/winte/Swedenroads_outputs/sweden_v3_201109.shp")
@@ -269,29 +335,41 @@ qclasslength$comp <- (qclasslength$prop - qclasslength_first$prop)
 #############################################################################
 # Calculate PCI
 
-swedt <- st_read("C:/Users/winte/Swedenroads_outputs/sweden_v3_201116.shp")
+swedt <- st_read("C:/Users/winte/Swedenroads_outputs/sweden_v3_201119.shp")
+#swedt <- outdat_eng_life_shape
 setDT(swedt)
 head(swedt)
-unique(swedt$RoadTyp)
 
 swedt_PCI <- CreatePCI(swedt)
 swedt_PCI <- PCIClass(swedt_PCI)
 
-exp <- c("Objectd", "PCI")
+# Export PCI as Excelfile
+exp <- c("Objectd", "PCI", "MsrmntD", "IRI_Index", "Rut_Index", "RMS_Index")
 id_pci <- swedt_PCI[, ..exp]
-write.xlsx(id_pci, "C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx")
+write.xlsx(id_pci, "C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx", append = TRUE)
 
-nrow(swedt_PCI[IRI_Index > 100])
+# Export as shapefile
+st_write(swedt_PCI, "C:/Users/winte/Swedenroads_outputs/sweden_v3_pci201119.shp", driver="ESRI Shapefile", append=FALSE) 
 
 mean(swedt_PCI$PCI)
 mean(swedt_PCI$IRI_Index, na.rm=TRUE)
 mean(swedt_PCI$Rut_Index, na.rm=TRUE)
 mean(swedt_PCI$RMS_Index, na.rm=TRUE)
+sum(swedt_PCI$Length)/1000
+
+nrow(swedt_PCI[TrtmntD > as.Date("2019-01-01")])/nrow(swedt_PCI)
+sum(swedt_PCI[TrtmntD > as.Date("2019-01-01")]$Length)/1000
+mean(swedt_PCI[TrtmntD > as.Date("2018-01-01")]$IRI_Index, na.rm=TRUE)
+mean(swedt_PCI[TrtmntD > as.Date("2018-01-01")]$Rut_Index, na.rm=TRUE)
+nrow(swedt_PCI[TrtmntD > MsrmntD])/nrow(swedt_PCI)
+
+head(swedt_PCI[is.na(PCI)])
+nrow(swedt_PCI[is.na(PCI)])
 
 quantile(swedt_PCI$PCI, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
-quantile(swedt_PCI$IRI_Index, probs = c(0, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
-quantile(swedt_PCI$Rut_Index, probs = c(0, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
-quantile(swedt_PCI$RMS_Index, probs = c(0, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(swedt_PCI$IRI_Index, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(swedt_PCI$Rut_Index, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(swedt_PCI$RMS_Index, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
 
 pclasslength <- swedt_PCI %>%
               group_by(PCIClass) %>%
