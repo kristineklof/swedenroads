@@ -153,6 +153,37 @@ extractAIC(loglog_reg_d_uh)
 extractAIC(wei_reg_d_uh)
 extractAIC(log_reg_d_uh) # lognormal has the lowest AIC
 
+# 2*traffic for motorways, 4-lane roads and 1.5*traffic for 2+1 roads
+surv_double_traf <- copy(lan_surv_dt)
+
+MultiplyTraffic <- function(dat){
+  dat[, AADT := ifelse(RoadType == "Motorway" | RoadType == "4-lane road", round(AADT*2, digits=0), round(AADT, digits=0))]
+  #dat[, AADT := ifelse(RoadType == "2+1 road", round(AADT*1.5, digits=0), round(AADT, digits=0))]
+  dat[, AADT_heavy := ifelse(RoadType == "Motorway" | RoadType == "4-lane road", round(AADT_heavy*2, digits=0), round(AADT_heavy, digits=0))]
+  #dat[, AADT_heavy := ifelse(RoadType == "2+1 road", round(AADT_heavy*1.5, digits=0), round(AADT_heavy, digits=0))]
+
+  # Traffic class variable
+  dat[, tkl8 := ifelse(AADT <250, 1, tkl8)]
+  dat[, tkl8 := ifelse(AADT >=250, 2, tkl8)]
+  dat[, tkl8 := ifelse(AADT >499, 3, tkl8)]
+  dat[, tkl8 := ifelse(AADT >999, 4, tkl8)]
+  dat[, tkl8 := ifelse(AADT >1999, 5, tkl8)]
+  dat[, tkl8 := ifelse(AADT >3999, 6, tkl8)]
+  dat[, tkl8 := ifelse(AADT >7999, 7, tkl8)]
+  dat[, tkl8 := ifelse(AADT >11999, 8, tkl8)]
+
+  print(table(dat$BearingCapacityClass))
+
+  dat[, BearingCapacityClass := as.numeric(BearingCapacityClass)]
+  dat[, BearingCapacityClass := ifelse(BearingCapacityClass == 4 | BearingCapacityClass == 5, 1, BearingCapacityClass)]
+  dat[, BearingCapacityClass := as.factor(BearingCapacityClass)]
+
+  return(dat)
+}
+
+surv_double_traf <- MultiplyTraffic(surv_double_traf)
+table(surv_double_traf$BearingCapacityClass)
+
 # Cox proportional hazards model
 cox_reg <- coxph(Surv(age_non0,d_uh) ~ strata(tkl8) +
                         #AADT +
@@ -164,7 +195,7 @@ cox_reg <- coxph(Surv(age_non0,d_uh) ~ strata(tkl8) +
                         RoadType  +
                         RoadWidth +
                         SpeedLimit,
-                      data=lan_surv_dt)
+                      data=surv_double_traf)
 summary(cox_reg)
 exp(cox_reg$coefficients)
 
@@ -220,9 +251,15 @@ exp(wei_reg_2011$coefficients)
 
 
 # Weibull survival curves
-s <- with(lan_surv_dt,Surv(age_non0,d_uh) )
-fKM <- survfit(s ~ tkl8, data= lan_surv_dt)
-sPar <- survreg(s ~ strata(tkl8) + tkl8, dist='lognormal', data= lan_surv_dt)
+# Remove pavement type NA
+lan_surv_nona <- lan_surv_dt[!is.na(PavementType)]
+nrow(lan_surv_nona)
+nrow(lan_surv_dt)
+survdata <- lan_surv_dt
+
+s <- with(survdata, Surv(age_non0,d_uh) )
+fKM <- survfit(s ~ tkl8, data=survdata)
+sPar <- survreg(s ~ strata(tkl8) + tkl8, dist='lognormal', data=survdata)
 
 seql <- length(seq(.01,.99,by=.01))
 df <- data.frame(y = rep(rev(seq(.01,.99,by=.01)),8),
@@ -246,10 +283,18 @@ nrow(df)
 head(df)
 df$tkl8 <- as.character(df$tkl8)
 
-p = ggsurvplot(fKM, data = lan_surv_dt, color = "strata", linetype = "solid", risk.table = "percentage", break.x.by = 5, palette="Set2") 
+theme <- theme(axis.line = element_line(colour = "black"),
+           panel.grid.major = element_line(colour = "grey90"),
+           panel.grid.minor = element_line(colour = "grey90"),
+           panel.border = element_blank(),
+           panel.background = element_blank()) 
+
+p = ggsurvplot(fKM, data = survdata, color = "strata", linetype = "solid", risk.table = c("absolute"), break.x.by = 5, ggtheme=theme) 
 print(p)
-p$plot = p$plot + geom_line(data=df, aes(x=time, y=y, group=tkl8))
-print(p)
+p$plot <- p$plot + geom_hline(yintercept=0.25, linetype="dashed")
+#p$plot = p$plot + geom_line(data=df, aes(x=time, y=y, group=tkl8))
+print(p) 
+
 
 #Plot survival for both sexes and show exponential hazard estimates
 f <- npsurv(s ~ tkl8, data= lan_surv_dt)
