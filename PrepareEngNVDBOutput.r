@@ -22,6 +22,8 @@ PrepareHomoNVDB <- function(outcols, names_eng, indat, pmsdat, lankom){
   setDT(dat)
   print(nrow(dat))
 
+  dat[, MeasurementDate := as.Date(as.character(MeasurementDate), format="%Y%m%d")]
+
   dat <- AddPavementType(dat = dat, pmsdat = pmsdat)
   print(nrow(dat))
 
