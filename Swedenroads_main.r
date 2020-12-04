@@ -76,68 +76,69 @@ names_swe <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_
                 "Vägkategori","Vägnummer","Län_nr","Vägtyp","Kommun_nr","Längd","Beläggningsdatum","Beläggning","TillverkningsMetod","UtläggningsMetod", "Omfattning",
                 "Sparmax17","Spar_max15","Spar_h","Spar_l","IRI_h","IRI_v","Kantdjup","Mätdatum","geometry", "Beläggningstyp", "Länsnamn", "Kommunnamn", "Trafikklass",
                 "IRI_underhållsstandard", "Spårdjup_underhållsstandard", "Region", "Beläggningsklass", "Ålder", "Förväntad_medianålder", "Förväntad_75p_ålder", "FörväntadLivslängd",
-                "ÅterståendeLivslängd","QClass","IRI_Index","RMS_Index","Rut_index","PCI","PCIKlass")
+                "ÅterståendeLivslängd","QClass","IRI_Index","RMS_Index","Rut_index","TillståndsIndex","IndexKlass")
 
 outdat_eng <- PrepareHomoNVDB(outcols = outcols, names_eng = names_eng, indat = nvdb_bel_mat, pmsdat = lans_dt, lankom = lankom)
 print(head(outdat_eng))
 
 outdat_swe <- PrepareHomoSwe(outcols = outcols, names_eng = names_eng, names_swe = names_swe, indat = nvdb_bel_mat, pmsdat = lans_dt, survdat=lan_surv_dt, lankom = lankom)
 print(head(outdat_swe))
+table(outdat_swe$Vägtyp)
 
 #####################################################################################
 # Check missing data in Swedish dataset
 stopifnot(sum(is.na(outdat_swe$Län_nr)) == 0)
 stopifnot(sum(is.na(outdat_swe$ÅDT_fordon)) == 42)
-stopifnot(sum(is.na(outdat_swe$Vägtyp)) == 7)
+stopifnot(sum(is.na(outdat_swe$Vägtyp)) == 66)
 stopifnot(sum(is.na(outdat_swe$Ålder)) == 34629)
 stopifnot(sum(is.na(outdat_swe$Beläggning)) == 34629)
-stopifnot(sum(is.na(outdat_swe$PCIKlass)) == 33028)
+stopifnot(sum(is.na(outdat_swe$IndexKlass)) == 13049)
 stopifnot(sum(is.na(outdat_swe$Bärighetsklass)) == 491)
 stopifnot(sum(is.na(outdat_swe$FörväntadLivslängd)) == 36284)
 stopifnot(sum(is.na(outdat_swe$Hastighet)) == 535)
 stopifnot(sum(is.na(outdat_swe$Vägbredd)) == 55)
-
 stopifnot(round(sum(outdat_swe$Längd[is.na(outdat_swe$Beläggning)])/sum(outdat_swe$Längd),digits=2) == 0.06)
 
-outdat_swe[, Spårdjup := ifelse(Vägbredd > 6, Sparmax17, Spar_max15)]
-outdat_swe[, IRI := IRI_h]
-outdat_swe[, ÅDT_mätår := substring(as.character(ÅDT_mätår),1,4)]
-outdat_swe[, ÅDT_mätår := as.integer(ÅDT_mätår)]
-outdat_swe[, Längd := round(Längd, digits = 0)]
-outdat_swe[, Vägtyp := as.factor(Vägtyp)]
-new_vag_levels <- c("1", "2", "3", "4", "5")
-setattr(outdat_swe$Vägtyp,"levels",new_vag_levels)
-outdat_swe[, Vägtyp := as.integer(Vägtyp)]
 saveRDS(outdat_swe, "C:/Users/winte/Swedenroads_outputs/outdat_swe.rds")
-
 
 # Select variables in Swedish dataset
 keeps <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_tung","ÅDT_mätår","Vägbredd",
                 "Vägnummer","Vägkategori","Vägtyp","Längd","Beläggningsdatum","Beläggningstyp", 
                 "Spårdjup","IRI","Mätdatum","geometry", "Län_nr", "Kommun_nr", "Trafikklass",
                 "IRI_underhållsstandard", "Spårdjup_underhållsstandard", "Region", "Ålder", "FörväntadLivslängd",
-                "ÅterståendeLivslängd","PCI","PCIKlass")
+                "ÅterståendeLivslängd","TillståndsIndex","IndexKlass")
 
 outdat_swe_small <- outdat_swe[, ..keeps]
 head(outdat_swe_small)
+table(outdat_swe_small$Beläggningstyp)
+table(outdat_swe_small$Vägtyp)
+table(outdat_swe_small$Region)
 
 mean(outdat_swe_small$Ålder, na.rm=TRUE)
 quantile(outdat_swe_small$Ålder, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm=TRUE) # quartile
 quantile(outdat_swe_small$ÅterståendeLivslängd, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm=TRUE) # quartile
-
-quantile(outdat_swe_small$PCI, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
+quantile(outdat_swe_small$TillståndsIndex, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE) # quartile
 
 pclasslength <- outdat_swe_small %>%
-              group_by(PCIKlass) %>%
+              group_by(IndexKlass) %>%
               summarise(grouplen = sum(Längd)/1000) %>%
               mutate(prop = grouplen/sum(grouplen))
 print(pclasslength)
 
 pclasslengthdou <- outdat_swe_small %>%
-              group_by(DoU2017, PCIKlass) %>%
-              summarise(grouplen = sum(Length)/1000) %>%
+              group_by(DoU2017, IndexKlass) %>%
+              summarise(grouplen = sum(Längd)/1000) %>%
               mutate(prop = grouplen/sum(grouplen))
 print(pclasslengthdou, n=Inf)
+
+pclasslengthreg <- outdat_swe_small %>%
+              group_by(Region, IndexKlass) %>%
+              summarise(grouplen = sum(Längd)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen))
+print(pclasslengthreg, n=Inf)
+
+# Save as shapefile
+st_write(outdat_swe_small, "C:/Users/winte/Swedenroads_outputs/swedenroads_2020.shp", driver="ESRI Shapefile", append=FALSE) 
 
 #####################################################################################
 # Handeling of missing data
@@ -167,6 +168,7 @@ stopifnot(nrow(unique(outdat_eng, by=c("Objectid")))==437189)
 #####################################################################################
 outdat_eng <- readRDS("C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
 nrow(outdat_eng[MeasurementDate < as.Date("2015-01-01")])
+table(outdat_eng$RoadType)
 
 # Add predicted service life
 outdat_eng_life <- CreateServiceLifeData(dat = outdat_eng, survdat=lan_surv_dt, metod = "AFT", 

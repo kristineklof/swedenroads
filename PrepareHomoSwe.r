@@ -84,10 +84,31 @@ PrepareHomoSwe <- function(outcols, names_eng, names_swe, indat, pmsdat, survdat
   # Remove columns
   dat[, c("IRI_mnt","SP_mant","IRI_r_p","rt_m17_","rt_m15_","PrdctSL","RmnngSL","RodWdth","RoadTyp","TrtmntD","MsrmntD","IRI_r_p_ceil", "Rut_17_Index", "Rut_15_Index"):=NULL] 
 
-  print(head(dat))
-  print(ncol(dat))
-
   names(dat) <- names_swe
+
+  # Add and change columns for website
+  dat[, Spårdjup := ifelse(Vägbredd > 6, Sparmax17, Spar_max15)]
+  dat[, IRI := IRI_h]
+  dat[, ÅDT_mätår := substring(as.character(ÅDT_mätår),1,4)]
+  dat[, ÅDT_mätår := as.integer(ÅDT_mätår)]
+  dat[, Längd := round(Längd, digits = 0)]
+
+    # Change to numeric levels
+  dat[, Vägtyp := as.factor(Vägtyp)]
+  new_vag_levels <- c("1", "2", "3", "4", "5")
+  setattr(dat$Vägtyp,"levels",new_vag_levels)
+  dat[, Vägtyp := as.integer(Vägtyp)]
+
+  new_bel_levels <- c("1", "2", "3", "4", "5", "6" , "7", "8", "9")
+  setattr(dat$Beläggningstyp,"levels",new_bel_levels)
+  dat[, Beläggningstyp := as.integer(Beläggningstyp)]
+
+  dat[, Region := as.factor(Region)]
+  new_reg_levels <- c("1", "2", "3", "4", "5", "6")
+  setattr(dat$Region,"levels",new_reg_levels)
+  dat[, Region := as.integer(Region)]
 
   return(setDT(dat))
 }
+
+
