@@ -10,10 +10,10 @@ if_else_na <- function(a,b,c){
 PCIClass <- function(dat){
     setDT(dat)
 
-  dat[, PCIClass := if_else_na(PCI >= 80, 5, NA)]
-  dat[, PCIClass := if_else_na(PCI <80, 4, PCIClass)]
-  dat[, PCIClass := if_else_na(PCI <60, 3, PCIClass)]
-  dat[, PCIClass := if_else_na(PCI <40, 2, PCIClass)]
+  dat[, PCIClass := if_else_na(PCI > 80, 5, NA)]
+  dat[, PCIClass := if_else_na(PCI <=80, 4, PCIClass)]
+  dat[, PCIClass := if_else_na(PCI <=60, 3, PCIClass)]
+  dat[, PCIClass := if_else_na(PCI <=40, 2, PCIClass)]
   dat[, PCIClass := if_else_na(PCI <=20, 1, PCIClass)]
 
   return(dat)
@@ -86,7 +86,7 @@ PCI <- function(dat){
    dat[, Matning_RMS_min := pmin(IRI_Index, Rut_Index, RMS_Index, na.rm=TRUE)]
    dat[, Matning_mean := rowMeans(.SD, na.rm = TRUE), .SDcols = c("IRI_Index", "Rut_Index")]
 
-   dat[, PCI := ifelse(!is.na(Matning_min), 
+   dat[, PCI := ifelse(!is.na(Matning_mean), 
                             ifelse(tkl8 <= 4,
                                     0.25*Matning_mean + 0.75*RMS_Index, 
                                     0.75*Matning_mean + 0.25*RMS_Index),
@@ -95,8 +95,8 @@ PCI <- function(dat){
                             Matning_RMS_min, PCI)]   
    dat[, PCI := ifelse((RoadTyp %in% c("Motorway", "Undivided motorway", "4-lane road")) & !is.na(Matning_mean),
                         Matning_mean, PCI)]  
-   dat[, PCI :=  if_else_na(TrtmntD > MsrmntD | TrtmntD >= as.Date("2019-01-01"), RMS_Index, PCI)]  
-
+   dat[, PCI :=  if_else_na(TrtmntD > MsrmntD | TrtmntD >= as.Date("2019-01-01"), RMS_Index, PCI)] 
+   dat[, PCI :=  if_else_na(is.na(PCI) & !is.na(Matning_mean), Matning_mean, PCI)]   
 
     dat[, PCI := round(PCI, digits=0)]
     dat[, c("Matning_min", "Matning_RMS_min", "Matning_mean") := NULL]
@@ -105,17 +105,17 @@ PCI <- function(dat){
 }
 
 itShouldCreatePCI <- function(){
-    testdat <- data.frame(Rut_Index = c(89,100,30,15,NA,20,25),
-                          IRI_Index= c(86,NA,44,5,NA,NA,40),
-                          RMS_Index = c(20,90,15,35,20,40,30),
-                          tkl8 = c(2,4,5,8,2,6,8),
-                          RoadTyp = c("Motorway", "2+1", "Ordinary road", "4-lane road", "Ordinary road", "Ordinary road", "Motorway"),
-                          TrtmntD = as.Date(c("2018-05-05","2018-05-05","2018-05-05","2018-05-05","2018-05-05","2019-05-05","2018-05-05")),
-                          MsrmntD = as.Date(c("2019-05-05","2017-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05")))
+    testdat <- data.frame(Rut_Index = c(89,100,30,15,NA,20,25,30),
+                          IRI_Index= c(86,NA,44,5,NA,NA,40,30),
+                          RMS_Index = c(20,90,15,35,20,40,30,NA),
+                          tkl8 = c(2,4,5,8,2,6,8,4),
+                          RoadTyp = c("Motorway", "2+1", "Ordinary road", "4-lane road", "Ordinary road", "Ordinary road", "Motorway","Ordinary road"),
+                          TrtmntD = as.Date(c("2018-05-05","2018-05-05","2018-05-05","2018-05-05","2018-05-05","2019-05-05","2018-05-05","2018-05-05")),
+                          MsrmntD = as.Date(c("2019-05-05","2017-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2017-05-05")))
     
     res <- PCI(testdat)
-    gold <- c(88, 90, 15, 10, 20, 40, 32)
-    print(res)
+    gold <- c(88, 90, 15, 10, 20, 40, 32, 30)
+    #print(res)
     stopifnot(gold == res$PCI)
 }
 
