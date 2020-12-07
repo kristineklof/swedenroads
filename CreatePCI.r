@@ -89,17 +89,17 @@ PCI <- function(dat){
    dat[, PCI := ifelse(!is.na(Matning_mean), 
                             ifelse(tkl8 <= 4,
                                     0.25*Matning_mean + 0.75*RMS_Index, 
-                                    0.75*Matning_mean + 0.25*RMS_Index),
-                        RMS_Index)]                   
+                                        0.75*Matning_mean + 0.25*RMS_Index),
+                            RMS_Index)]          
    dat[, PCI := if_else_na(IRI_Index <= 20 | Rut_Index <= 20 | RMS_Index <= 20,
                             Matning_RMS_min, PCI)]   
-   dat[, PCI := ifelse((RoadTyp %in% c("Motorway", "Undivided motorway", "4-lane road")) & !is.na(Matning_mean),
-                        Matning_mean, PCI)]  
+   dat[, PCI := ifelse((RoadTyp %in% c("Motorway", "Undivided motorway", "4-lane road", "2+1 road")) & !is.na(Matning_min),
+                        Matning_min, PCI)]     
    dat[, PCI :=  if_else_na(TrtmntD > MsrmntD | TrtmntD >= as.Date("2019-01-01"), RMS_Index, PCI)] 
    dat[, PCI :=  if_else_na(is.na(PCI) & !is.na(Matning_mean), Matning_mean, PCI)]   
 
-    dat[, PCI := round(PCI, digits=0)]
-    dat[, c("Matning_min", "Matning_RMS_min", "Matning_mean") := NULL]
+  dat[, PCI := round(PCI, digits=0)]
+  dat[, c("Matning_min", "Matning_RMS_min", "Matning_mean") := NULL]
 
     return(setDT(dat))
 }
@@ -109,12 +109,12 @@ itShouldCreatePCI <- function(){
                           IRI_Index= c(86,NA,44,5,NA,NA,40,30),
                           RMS_Index = c(20,90,15,35,20,40,30,NA),
                           tkl8 = c(2,4,5,8,2,6,8,4),
-                          RoadTyp = c("Motorway", "2+1", "Ordinary road", "4-lane road", "Ordinary road", "Ordinary road", "Motorway","Ordinary road"),
+                          RoadTyp = c("Motorway", "2+1 road", "Ordinary road", "4-lane road", "Ordinary road", "Ordinary road", "Motorway","Ordinary road"),
                           TrtmntD = as.Date(c("2018-05-05","2018-05-05","2018-05-05","2018-05-05","2018-05-05","2019-05-05","2018-05-05","2018-05-05")),
                           MsrmntD = as.Date(c("2019-05-05","2017-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2017-05-05")))
     
     res <- PCI(testdat)
-    gold <- c(88, 90, 15, 10, 20, 40, 32, 30)
+    gold <- c(86, 90, 15, 5, 20, 40, 25, 30)
     #print(res)
     stopifnot(gold == res$PCI)
 }
