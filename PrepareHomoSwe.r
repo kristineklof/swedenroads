@@ -65,25 +65,6 @@ PrepareHomoSwe <- function(outcols, names_eng, names_swe, indat, pmsdat, survdat
                                           percentil_low = 0.75,
                                           div = "no", divclass = 5)
 
-  dat[, IRI_mnt := IRI_maint]
-  dat[, SP_mant := SP_maint]
-  dat[, IRI_r_p := IRI_r_perc]
-  dat[, rt_m17_ := rut_max17_perc]
-  dat[, rt_m15_ := rut_max15_perc]
-  dat[, PrdctSL := PredictedServiceLife]
-  dat[, RmnngSL := RemainingServiceLife]
-  dat[, RodWdth := RoadWidth/10]
-  dat[, RoadTyp := RoadType]
-  dat[, TrtmntD := TreatmentDate]
-  dat[, MsrmntD := MeasurementDate]
-
-  # Add PCI
-  dat <- CreatePCI(dat)
-  dat <- PCIClass(dat)
-
-  # Remove columns
-  dat[, c("IRI_mnt","SP_mant","IRI_r_p","rt_m17_","rt_m15_","PrdctSL","RmnngSL","RodWdth","RoadTyp","TrtmntD","MsrmntD","IRI_r_p_ceil", "Rut_17_Index", "Rut_15_Index"):=NULL] 
-
   names(dat) <- names_swe
 
   # Add and change columns for website
