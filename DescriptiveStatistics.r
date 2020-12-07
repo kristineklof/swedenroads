@@ -17,34 +17,11 @@ DescriptiveStats(swedt_PCI$AADT_hv)
 DescriptiveStats(swedt_PCI$AADT)
 
 # Qualitative descriptive statistics for report
-QualitativeStats(swedt_PCI, quo(tkl8), quo(Length))
-QualitativeStats(swedt_PCI, quo(PvmntTy), quo(Length))
-QualitativeStats(swedt_PCI, quo(DoU2017), quo(Length))
-QualitativeStats(swedt_PCI, quo(RoadTyp), quo(Length))
-QualitativeStats(swedt_PCI, quo(RdCtgry), quo(Length))
-
-
-           
-DescriptiveStats <- function(var){
-    dstats <- data.frame(Mean = round(mean(var, na.rm=TRUE), digits = 0),
-                SD = round(sd(var, na.rm=TRUE), digits = 0),
-               Min = round(min(var, na.rm=TRUE), digits = 0),
-               Q1 = round(quantile(var, probs = 0.25, na.rm=TRUE), digits=0),
-               Median = round(median(var, na.rm=TRUE), digits = 0),
-               Q3 = round(quantile(var, probs = 0.75, na.rm=TRUE), digits=0),
-               Max = round(max(var, na.rm=TRUE), digits = 0))
-
-    return(dstats)
-}
-
-QualitativeStats <- function(df, grp.var, uniq.var){
-    classlengtht <- df %>%
-              group_by(!!grp.var) %>%
-              summarise(grouplen = sum(!!uniq.var)/1000) %>%
-              mutate(prop = grouplen/sum(grouplen))
-
-    return(classlengtht)
-}
+QualitativeStatsSingleGroup(swedt_PCI, quo(tkl8), quo(Length))
+QualitativeStatsSingleGroup(swedt_PCI, quo(PvmntTy), quo(Length))
+QualitativeStatsSingleGroup(swedt_PCI, quo(DoU2017), quo(Length))
+QualitativeStatsSingleGroup(swedt_PCI, quo(RoadTyp), quo(Length))
+QualitativeStatsSingleGroup(swedt_PCI, quo(RdCtgry), quo(Length))
 
 #################################################################
 # PCI statistics for report
@@ -91,28 +68,52 @@ print(cond_p)
 
 #####################################################
 # Plot index curve
-
-PlotIndexCurve <- function(cutoff, actual){
+PlotIndexCurve <- function(cutoff, actual, logscale = FALSE, x_lab){
     df <- data.frame(x = (cutoff - actual)/cutoff)
-    index <- function(x) 100*exp(--log(0.2)*x)
 
-    p <- ggplot(data = df, mapping = aes(x = x)) + 
+    if(logscale){
+      index <- function(x) 100*exp(--log(0.2)*x)
+
+        p <- ggplot(data = df, mapping = aes(x = x)) + 
                 stat_function(fun = index, size = 1) +
                 geom_hline(yintercept=20, linetype="dashed", color = "red", size = 2) +
                 theme(axis.text.x = element_text(size=16),
                       axis.text.y = element_text(size=16),
                       axis.title = element_text(size=14)) +
-                scale_x_continuous(name="(IRI underhållsstandard - IRI mätvärde)/IRI underhållsstandard", limits=c(0, 5)) +
+                scale_x_continuous(name=x_lab, limits=c(0, 5)) +
+                scale_y_log10(name="Indexvärde")
+        
+        return (p)
+    } else {
+      index <- function(x) 100*exp(--log(0.2)*x)
+    }
+
+  p <- ggplot(data = df, mapping = aes(x = x)) + 
+                stat_function(fun = index, size = 1) +
+                geom_hline(yintercept=20, linetype="dashed", color = "red", size = 2) +
+                theme(axis.text.x = element_text(size=16),
+                      axis.text.y = element_text(size=16),
+                      axis.title = element_text(size=14)) +
+                scale_x_continuous(name=x_lab, limits=c(0, 5)) +
                 scale_y_continuous(name="Indexvärde", breaks=seq(0,100,20))
+
 
   return(p)              
 }
 
+# IRI
 cutoff <- (swedt_PCI$IRI_mnt - 1)
 IRI_ceil <- if_else_na(swedt_PCI$IRI_r_p < 1, ceiling(swedt_PCI$IRI_r_p), swedt_PCI$IRI_r_p)
 actual <- swedt_PCI$IRI_mnt - IRI_ceil
 
-p <- PlotIndexCurve(cutoff, actual)
+p <- PlotIndexCurve(cutoff, actual, x_lab = "(IRI underhållsstandard - IRI mätvärde)/IRI underhållsstandard")
+print(p)
+
+# RMS 
+actual <- swedt_PCI$RmnngSL
+cutoff <- swedt_PCI$PrdctSL
+
+p <- PlotIndexCurve(cutoff, actual, logscale = TRUE, x_lab="(Restlevnad - Livslängd)/Livslängd")
 print(p)
 
 #####################################################
@@ -153,11 +154,11 @@ print(swebel_klass, n=Inf)
 # Klassificerad
 klass_manf <- swedt_PCI %>%
               filter(!is.na(PvngMth)) %>%
-              group_by(PvmntTy, PvngMth) %>%
+              group_by(RoadTyp, PvngMth) %>%
               summarise(grouplen = sum(Length)/1000) %>%
               mutate(prop = grouplen/sum(grouplen)) %>%
-              top_n(n=10) %>%
-              arrange(PvngMth, desc(prop))
+              top_n(n=5) %>%
+              arrange(RoadTyp, desc(prop))
 print(klass_manf, n=Inf)
 
 # Klass + trafikmängd
@@ -169,6 +170,17 @@ swebel_klass_tkl <- swedt_PCI %>%
               top_n(n=5) %>%
               arrange(tkl8, desc(prop))
 print(swebel_klass_tkl, n=Inf)
+
+# Klass + vägtyp
+swebel_klass_rt <- swedt_PCI %>%
+              filter(!is.na(Tretmnt)) %>%
+              group_by(RoadTyp, Tretmnt) %>%
+              summarise(grouplen = sum(Length)/1000) %>%
+              mutate(prop = grouplen/sum(grouplen)) %>%
+              top_n(n=8) %>%
+              arrange(RoadTyp, desc(prop))
+print(swebel_klass_rt, n=Inf)
+
 
 # Klassificerad historisk (PMS)
 head(lans_dt)
@@ -223,6 +235,23 @@ sum(outdat_swe$Längd[is.na(outdat_swe$IRI)])/1000
 
 sum(outdat_swe$Längd[is.na(outdat_swe$Spårdjup)])/sum(outdat_swe$Längd)
 sum(outdat_swe$Längd[is.na(outdat_swe$Spårdjup)])/1000
+
+##################################################################################
+# Sections above maintenance standard
+
+outdat_eng <- readRDS("C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
+
+maintstandlengthtkl <- outdat_eng %>%
+              group_by(tkl8) %>%
+              summarise(grouplen = sum(Length)/1000,
+                        lenabove= sum(Length[(rut_max17_perc > SP_maint & RoadWidth > 60) | (rut_max15_perc > SP_maint & RoadWidth <= 60) | IRI_r_perc > IRI_maint], na.rm = TRUE)/1000/grouplen)
+print(maintstandlengthtkl)
+
+maintstandlengthdou <- outdat_eng %>%
+              group_by(DoU2017) %>%
+              summarise(grouplen = sum(Length)/1000,
+                        lenabove= sum(Length[(rut_max17_perc > SP_maint & RoadWidth > 60) | (rut_max15_perc > SP_maint & RoadWidth <= 60)| IRI_r_perc > IRI_maint], na.rm = TRUE)/1000/grouplen)
+print(maintstandlengthdou)
 
 
 
