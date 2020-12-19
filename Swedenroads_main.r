@@ -3,7 +3,7 @@
 #=================================================================#
 source("LoadInstall.R")
 deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime","survminer",
-          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", "openxlsx", "writexl")
+          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", "openxlsx", "writexl","gridExtra")
 LoadInstall(deps)
 options(scipen=999)
 
@@ -87,7 +87,9 @@ itShouldTestVariableAge(outdat_eng, lan_surv_dt)
 
 # Rename factor levels
 outdat_eng_shape <- copy(outdat_eng)
-new_pave_levels <- c("Hot mix asphalt (asphalt concrete)", "Seal coat", "Half warm asphalt", "Grouted macadam", "Thin asphalt layer", "Hot mix asphalt (stone mastic)", "Surface dressing on bituminous surface", "Surface dressing on gravel", "Other")
+new_pave_levels <- c("Hot mix asphalt (asphalt concrete)", "Seal coat", "Half warm asphalt", 
+                      "Grouted macadam", "Thin asphalt layer", "Hot mix asphalt (stone mastic)", 
+                      "Surface dressing on bituminous surface", "Surface dressing on gravel", "Other")
 setattr(outdat_eng_life_shape$PavementType,"levels",new_pave_levels)
 
 # Road width to meters
