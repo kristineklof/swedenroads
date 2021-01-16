@@ -99,6 +99,7 @@ surv_cover[, Kat_omf := ifelse(is.na(omfattning) | omfattning == "NULL", NA, Kat
 surv_cover[, Kat_omf := as.factor(Kat_omf)]
 surv_cover[, Kat_omf  := relevel(Kat_omf, "Heltäckande")]
 table(surv_cover$Kat_omf, surv_cover$d_uh)
+table(surv_cover$Kat_omf, surv_cover$PavementType)
 
 wei_reg_d_uh_omf <- survreg(Surv(age_non0,d_uh) ~ strata(tkl8) +
                         AADT +
