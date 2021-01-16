@@ -10,6 +10,14 @@ swedt_PCI[, PCIClass := as.factor(PCIClass)]
 str(swedt_PCI)
 
 #############################################################################
+#  Beräkna medelindex för alla vägar över 20
+mean(swedt_PCI[PCI > 20]$PCI)
+
+#############################################################################
+#  Vägytemätningsdatum
+as.Date(quantile(unclass(swedt_PCI$MsrmntD), probs = c(0.02, 0.05, 0.25, 0.5, 0.75, 0.95), na.rm=TRUE), origin = "1970-01-01")
+
+#############################################################################
 # Kolla utfall av underhållsåtgärder 2019
 uh_atg2019 <- QualitativeStatsSingleGroup(swedt_PCI[TrtmntD > "2019-01-01"], quo(Tretmnt), quo(Length))
 uh_atg2019 <- uh_atg2019 %>% arrange(desc(prop)) %>% top_n(n=10) 
@@ -24,6 +32,10 @@ values <- c("rt_m17_","rt_m15_","IRI_r_p")
 cor(swedt_PCI[RoadTyp == "Ordinary road",..values], use="complete.obs", method="pearson")
 cor(swedt_PCI[RoadTyp != "Ordinary road",..values], use="complete.obs", method="pearson")
 
+# Hur många lågtrafikerade vägar överskrider spårdjup resp IRI uh standard?
+rut_tkl <- QualitativeStatsSingleGroup(swedt_PCI[Rt_Indx <= 20], quo(tkl8), quo(Length))
+iri_tkl <- QualitativeStatsSingleGroup(swedt_PCI[IRI_Ind <= 20], quo(tkl8), quo(Length))
+
 #############################################################################
 # Quantative descriptive statistics for report
 DescriptiveStats(swedt_PCI$Length)
@@ -37,6 +49,7 @@ QualitativeStatsSingleGroup(swedt_PCI, quo(PvmntTy), quo(Length))
 QualitativeStatsSingleGroup(swedt_PCI, quo(DoU2017), quo(Length))
 QualitativeStatsSingleGroup(swedt_PCI, quo(RoadTyp), quo(Length))
 QualitativeStatsSingleGroup(swedt_PCI, quo(RdCtgry), quo(Length))
+QualitativeStatsSingleGroup(swedt_PCI, quo(BrngCpC), quo(Length))
 
 # Med trafikarbete
 QualitativeStatsSingleGroupTA(swedt_PCI,quo(DoU2017),quo(Length),quo(AADT))
@@ -129,11 +142,27 @@ PlotIndexCurve <- function(cutoff, actual, x_lab){
                       axis.text.y = element_text(size=16),
                       axis.title = element_text(size=14)) +
                 scale_x_continuous(name=x_lab, limits=c(0, 4)) +
-                scale_y_continuous(name="Indexvärde", breaks=seq(0,100,20))
+                scale_y_continuous(name="IRI-indexvärde", breaks=seq(0,100,20))
 
 
   return(p)              
 }
+
+# IRI
+cutoff <- (swedt_PCI$IRI_mnt)
+IRI_ceil <- if_else_na(swedt_PCI$IRI_r_p < 1, ceiling(swedt_PCI$IRI_r_p), swedt_PCI$IRI_r_p)
+actual <- swedt_PCI$IRI_mnt - IRI_ceil
+
+p <- PlotIndexCurve(cutoff, actual, x_lab = "Avvikelse från underhållstandard/IRI-värde underhållsstandard")
+print(p)
+
+# Spårdjup
+cutoff <- (swedt_PCI$IRI_mnt - 1)
+IRI_ceil <- if_else_na(swedt_PCI$IRI_r_p < 1, ceiling(swedt_PCI$IRI_r_p), swedt_PCI$IRI_r_p)
+actual <- swedt_PCI$IRI_mnt - IRI_ceil
+
+p <- PlotIndexCurve(cutoff, actual, x_lab = "(Mätvärde underhållsstandard + Mätvärde)/Mätvärde underhållsstandard")
+print(p)
 
 # IRI
 cutoff <- (swedt_PCI$IRI_mnt - 1)
@@ -188,6 +217,41 @@ print(p)
 p <- PlotIndexScatter(df = swedt_PCI, by_index=TRUE, x_lab = "VägID")
 print(p)
 
+
+##############################################################
+# Plot degradation curve
+swedt_PCI[60000,]
+swedt_PCI[Objectd == 781887]
+age <- c(35,25,0)
+age_l <- c(25,19,0)
+age2 <- c(8,5,0)
+age2_l <- c(5,3.5,0)
+ind <- c(0,20,100)
+
+PlotDegradationCurve <- function(x, y){
+    df <- as.data.frame(x = x, y = y)
+    pol <- polyfit(x, y, 2)
+    index <- function(x) pol[1]*x^2 + pol[2]*x + pol[3]
+
+  p <- ggplot(data = df, mapping = aes(x = x)) + 
+                stat_function(fun = index, size = 1) +
+                #geom_hline(yintercept=20, linetype="dashed", color = "red", size = 2) +
+                theme(axis.text.x = element_text(size=16),
+                      axis.text.y = element_text(size=16),
+                      axis.title = element_text(size=14)) +
+                scale_x_continuous(name="Ålder") +
+                scale_y_continuous(name="Tillståndsindex", breaks=seq(0,100,20))
+
+  return(p)              
+}
+
+d1 <- PlotDegradationCurve(x=age, y=ind)
+d2 <- PlotDegradationCurve(x=age2, y=ind)
+grid.arrange(d1, d2, ncol=2)
+
+d1_l <- PlotDegradationCurve(x=age_l, y=ind)
+d2_l <- PlotDegradationCurve(x=age2_l, y=ind)
+grid.arrange(d1_l, d2_l, ncol=2)
 
 ##############################################################
 # Sammanställning missing data
