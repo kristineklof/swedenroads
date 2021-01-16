@@ -6,7 +6,7 @@
 swedt_PCI <- st_read( "C:/Users/winte/Swedenroads_outputs/sweden_v3_pci201206.shp") 
 setDT(swedt_PCI)
 #pci2030 <- read.xlsx("C:/Users/winte/Swedenroads_outputs/2030_PCI_20201218.xlsx")
-pci2030 <- fread("C:/Users/winte/Swedenroads_outputs/PCI_Scenario 1 - 3rd update PCI.csv")
+pci2030 <- fread("C:/Users/winte/Swedenroads_outputs/7018-Scenario6.csv")
 
 head(pci2030)
 names(pci2030) <- c("Objectd","Year","PCI")
@@ -36,7 +36,7 @@ pci2030 <- PCIClass2030(pci2030)
 str(pci2030)
 head(pci2030)
 
-cols <- c("Objectd","Length","AADT","RoadTyp","tkl8")
+cols <- c("Objectd","Length","AADT","RoadTyp","tkl8","Region")
 pci2030 <- pci2030[swedt_PCI[, ..cols], on = 'Objectd']
 
 fill <- c("#20AC65", "#71C94B","#FABF20","#F2203E","#C40A3B")
@@ -53,6 +53,27 @@ df_long <- pci2030[Year == 2020 | Year == 2030]
 df_long[, Y := Year]
 head(df_long)
 
+# Region
+cond_reg <- df_long  %>%
+  mutate(Region = recode(Region, Ost="Öst", Vast="Väst")) %>%
+  mutate(PCIClass = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
+  mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+  group_by(Region, PCIClass) %>%
+  summarise(grouplen = sum(Length)/1000) %>%
+  mutate(percentage = grouplen/sum(grouplen)) %>%
+  ggplot(aes(x = Region, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,digits=0)," %"))) +
+    geom_bar(position = 'fill', stat = 'identity') +
+    scale_fill_manual(values=fill) +
+    labs(y="", x = "") +
+    scale_y_continuous(labels = scales::percent) +
+    theme(legend.position="right", legend.direction="vertical",
+                   legend.title = element_blank(), 
+                   legend.text=element_text(size=16), 
+                   axis.text=element_text(size=16)) +
+    geom_text(size = 3, position = position_stack(vjust = 0.5))
+
+print(cond_reg)
+
 # Trafikarbete
 cond_y <- df_long %>%
   mutate(Y = as.factor(Y)) %>%
@@ -67,7 +88,7 @@ cond_y <- df_long %>%
     geom_bar(position = 'fill', stat = 'identity') +
     scale_fill_manual(values=fill) +
     labs(y="", x = "") +
-    #ggtitle("Trafikarbete") +
+    ggtitle("Trafikarbete") +
     scale_y_continuous(labels = scales::percent) +
     theme(legend.position="none", 
           axis.text=element_text(size=16),
@@ -88,7 +109,7 @@ cond_yv <- df_long %>%
     geom_bar(position = 'fill', stat = 'identity') +
     scale_fill_manual(values=fill) +
     labs(y="", x = "") +
-    #ggtitle("Väglängd") +
+    ggtitle("Väglängd") +
     scale_y_continuous(labels = scales::percent) +
     theme(legend.position = "none",
           axis.text=element_text(size=16),
@@ -97,41 +118,13 @@ cond_yv <- df_long %>%
 
 print(cond_yv)
 
+print(cond_y)
+
 # Length vs trafikarbete
 grid.arrange(cond_yv, cond_y, ncol=2)
 
 #####################################################
 # Plot tillstånd over time 2020-2030
-
-#tf_fill <- c("#C40A3B","#F2203E","#FABF20","#71C94B","#20AC65")
-
-#tf_df <- data.frame(Year = c(rep(2020,5),rep(2021,5),rep(2022,5),rep(2023,5),rep(2024,5),
-#                              rep(2025,5),rep(2026,5),rep(2027,5),rep(2028,5),rep(2029,5),rep(2030,5)),
-#                    Tillstånd = rep(c("Mycket dåligt", "Dåligt", "Tillfredsställande", "Bra", "Mycket bra"),11),
-#                    Andel = c(0.13,0.17,0.29,0.27,0.14,
-#                              0.14, 0.22, 0.30, 0.26, 0.09,
-#                              0.14, 0.24, 0.24, 0.26, 0.12,
-#                              0.16, 0.24, 0.21, 0.25, 0.13,
-#                              0.19, 0.23, 0.20, 0.26, 0.13,
-#                              0.22, 0.21, 0.19, 0.28, 0.10,
-#                              0.24, 0.18, 0.21, 0.29, 0.07,
-#                              0.27, 0.17, 0.18, 0.24, 0.13,
-#                              0.29, 0.16, 0.16, 0.22, 0.16,
-#                              0.31, 0.14, 0.14, 0.25, 0.16,
-#                             0.31, 0.11, 0.10, 0.28, 0.20))
-#head(tf_df)
-                
-#tf_p <- tf_df %>%
-#  mutate(Tillstånd = factor(Tillstånd, levels = c("Mycket bra","Bra", "Tillfredsställande","Dåligt","Mycket dåligt"))) %>%
-#  ggplot(aes(x = factor(Year), y = Andel, fill = Tillstånd, label = paste0(round(100*Andel,digits=0)," %"))) +
-#  geom_bar(position="fill", stat="identity") +
-#  scale_fill_manual(values=fill) +
-#    labs(y="", x = "") +
-#    scale_y_continuous(labels = scales::percent) +
-#    theme(legend.position = "none",
-#          axis.text=element_text(size=16),
-#          plot.title = element_text(size = 20)) +
-#    geom_text(size = 3, position = position_stack(vjust = 0.5))
 
 tf_p <- pci2030 %>%
   mutate(Tillstånd = as.character(PCIClass)) %>%
@@ -147,9 +140,9 @@ tf_p <- pci2030 %>%
     labs(y="", x = "") +
     scale_y_continuous(labels = scales::percent) +
     theme(legend.position = "none",
-          axis.text=element_text(size=16),
+          axis.text=element_text(size=24),
           plot.title = element_text(size = 20)) +
-    geom_text(size = 3, position = position_stack(vjust = 0.5))
+    geom_text(size = 6, position = position_stack(vjust = 0.5))
 
 print(tf_p)
 
@@ -158,12 +151,15 @@ print(tf_p)
 def_df <- data.frame(Year = c(2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030),
                      Miljarder = c(19.7, 29.5, 44.9, 63.0, 80.7, 94.3, 103.7, 114.7, 130.1, 144.8, 158.9))
 
+def_df_urek <- data.frame(Year = c(2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030),
+                     Miljarder = c(13.8, 14.8, 17.1, 20.5, 24.5, 28.9, 32.9, 36.1, 39.1, 41.1, 41.8))
+
 def_p <- def_df %>%
   ggplot(aes(x=factor(Year), y=Miljarder, group=1)) +
   geom_point(stat='summary', fun=sum,shape=21, color="black", fill="black", size=3) +
   stat_summary(fun=sum, geom="line") +
   geom_label_repel(aes(label = Miljarder),
-                    size = 5) +
+                    size = 8) +
   scale_y_continuous(name="Miljarder SEK", limits=c(0, 160), breaks=c(0,20,40,60,80,100,120,140,160)) +
   #geom_text(aes(label=Miljarder), size=10) +
   labs(y="Miljarder SEK", x = "År") +
@@ -175,14 +171,26 @@ print(def_p)
 def_b <- def_df %>%
   ggplot(aes(x=factor(Year), y=Miljarder)) +
   geom_bar(position="dodge", stat="identity", color="black", fill="darkblue") +
-  geom_text(aes(label=Miljarder), position=position_dodge(width=0.9), vjust=-0.25, fontface="bold", size=6) +
+  geom_text(aes(label=Miljarder), position=position_dodge(width=0.9), vjust=-0.25, fontface="bold", size=8) +
   scale_y_continuous(name="Miljarder SEK", limits=c(0, 160), breaks=c(0,20,40,60,80,100,120,140,160)) +
   #geom_text(aes(label=Miljarder), size=10) +
   labs(y="Miljarder SEK", x = "År") +
-  theme(axis.text=element_text(size=16),
-          axis.title=element_text(size=16))
+  theme(axis.text=element_text(size=24),
+          axis.title=element_text(size=24))
 
 print(def_b)
+
+def_b_rek <- def_df_urek %>%
+  ggplot(aes(x=factor(Year), y=Miljarder)) +
+  geom_bar(position="dodge", stat="identity", color="black", fill="darkblue") +
+  geom_text(aes(label=Miljarder), position=position_dodge(width=0.9), vjust=-0.25, fontface="bold", size=8) +
+  scale_y_continuous(name="Miljarder SEK", limits=c(0, 50), breaks=c(0,10,20,30,40,50)) +
+  #geom_text(aes(label=Miljarder), size=10) +
+  labs(y="Miljarder SEK", x = "År") +
+  theme(axis.text=element_text(size=24),
+          axis.title=element_text(size=24))
+
+print(def_b_rek)
 
 ##########################################################
 # Roadlength under PCI 5 2020 vs 2030
@@ -199,7 +207,9 @@ pci_5_2020_tkl <- swedt_PCI %>%
               group_by(tkl8) %>%
               summarise(grouplen = sum(Length)/1000,
                         percbelow= sum(Length[PCI <= 5], na.rm = TRUE)/1000/grouplen,
-                        lenbelow= percbelow*grouplen)
+                        lenbelow= percbelow*grouplen) %>%
+             ungroup() %>%
+             mutate(percbelow_margin = lenbelow/sum(lenbelow))
 print(pci_5_2020_tkl)
 sum(pci_5_2020_tkl$lenbelow)/sum(pci_5_2020_tkl$grouplen)
 
@@ -219,7 +229,9 @@ pci_5_2030_tkl <- pci2030 %>%
               group_by(tkl8) %>%
               summarise(grouplen = sum(Length)/1000,
                         percbelow= sum(Length[PCI <= 5])/1000/grouplen,
-                        lenbelow= percbelow*grouplen)
+                        lenbelow= percbelow*grouplen) %>%
+             ungroup() %>%
+             mutate(percbelow_margin = lenbelow/sum(lenbelow))
 print(pci_5_2030_tkl, n=Inf)
 sum(pci_5_2030_tkl$lenbelow)/sum(pci_5_2030_tkl$grouplen)
 
