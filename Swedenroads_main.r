@@ -113,20 +113,6 @@ swedt_PCI <- PCIClass(swedt_PCI)
 head(swedt_PCI)
 itShouldTestPCI(swedt_PCI)
 
-# Export PCI as Excelfile
-exp <- c("Objectd", "PCI", "MsrmntD", "IRI_Index", "Rut_Index","RMS_Index","PCIClass")
-id_pci <- swedt_PCI[, ..exp]
-#write.xlsx(id_pci, "C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx", append = TRUE)
-
-# Export only ID's that have changed
-id_pci_old <- read.xlsx("C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx")
-id_pci_old$MsrmntD <- as.Date(id_pci_old$MsrmntD, origin = "1899-12-30")
-id_pci_new <- anti_join(id_pci[,c("Objectd", "PCI")], id_pci_old[,c("Objectd", "PCI")])
-stopifnot(round(nrow(id_pci_new)/nrow(id_pci_old),3) == 0.115)
-
-# Export excelfile with only new values
-write.xlsx(id_pci_new, "C:/Users/winte/Swedenroads_outputs/objectid_pci_updatedvalues.xlsx", append = TRUE)
-
 # Export everything as shapefile
 st_write(swedt_PCI, "C:/Users/winte/Swedenroads_outputs/sweden_v3_pci201206.shp", driver="ESRI Shapefile", append=FALSE) 
 

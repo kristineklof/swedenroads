@@ -2,7 +2,20 @@
 #            Swedenroads: updates to existing datasets
 #=================================================================#
 
-# Export only ID's where PCI values have changed
+swedt <- st_read("C:/Users/winte/Swedenroads_outputs/sweden_v3_201119.shp")
+setDT(swedt)
+
+swedt_PCI <- CreatePCI(swedt)
+swedt_PCI <- PCIClass(swedt_PCI)
+head(swedt_PCI)
+itShouldTestPCI(swedt_PCI)
+
+# Export PCI as Excelfile
+exp <- c("Objectd", "PCI", "MsrmntD", "IRI_Index", "Rut_Index","RMS_Index","PCIClass")
+id_pci <- swedt_PCI[, ..exp]
+#write.xlsx(id_pci, "C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx", append = TRUE)
+
+# Export only ID's that have changed
 id_pci_old <- read.xlsx("C:/Users/winte/Swedenroads_outputs/objectid_pci.xlsx")
 id_pci_old$MsrmntD <- as.Date(id_pci_old$MsrmntD, origin = "1899-12-30")
 id_pci_new <- anti_join(id_pci[,c("Objectd", "PCI")], id_pci_old[,c("Objectd", "PCI")])
