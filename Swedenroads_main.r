@@ -3,7 +3,8 @@
 #=================================================================#
 source("LoadInstall.R")
 deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime","survminer",
-          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", "openxlsx", "writexl","gridExtra", "ggrepel")
+          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", 
+          "openxlsx", "writexl","gridExtra", "ggrepel", "xtable", "pracma")
 LoadInstall(deps)
 options(scipen=999)
 
@@ -26,6 +27,7 @@ source("Tests_Swedenroads_main.r", encoding = 'UTF-8')
 lans_dt <- readRDS("C:/Users/winte/Swedenroads_outputs/lans_dt.rds")
 lan_surv_dt <- readRDS("C:/Users/winte/Swedenroads_outputs/lan_surv_dt_matning.rds")
 itShouldTestSurvivalData(dat = lan_surv_dt)
+str(lans_dt, list.len=ncol(lans_dt))
 
 # Lan and kommun
 lankom <- fread("C:/Users/winte/OneDrive/Documents/salbo.ai/Transportföretagen/Data/LänKommun.csv")
@@ -55,19 +57,21 @@ names_swe <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_
                 "IRI_underhållsstandard", "Spårdjup_underhållsstandard", "Region", "Beläggningsklass", "Ålder", "Förväntad_medianålder", "Förväntad_75p_ålder", "FörväntadLivslängd",
                 "ÅterståendeLivslängd","QClass")
 
+# English version
 outdat_eng <- PrepareHomoNVDB(outcols = outcols, names_eng = names_eng, indat = nvdb_bel_mat, pmsdat = lans_dt, lankom = lankom)
 print(head(outdat_eng))
 itShouldTestEnglishOutput(outdat_eng)
 #saveRDS(outdat_eng, "C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
 
+# Swedish version
 outdat_swe <- PrepareHomoSwe(outcols = outcols, names_eng = names_eng, names_swe = names_swe, indat = nvdb_bel_mat, pmsdat = lans_dt, survdat=lan_surv_dt, lankom = lankom)
 print(head(outdat_swe))
 itShouldTestSwedishOutput(outdat_swe)
-saveRDS(outdat_swe, "C:/Users/winte/Swedenroads_outputs/outdat_swe.rds")
+#saveRDS(outdat_swe, "C:/Users/winte/Swedenroads_outputs/outdat_swe.rds")
 
 ###################################################################################################################
 ## Add predicted service life
-outdat_eng <- readRDS("C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
+#outdat_eng <- readRDS("C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
 
 outdat_eng <- CreateServiceLifeData(dat = outdat_eng, survdat=lan_surv_dt, metod = "AFT", 
                                           distribution = "lognormal", percentil_high = 0.5, percentil_low = 0.75,
@@ -160,3 +164,4 @@ QualitativeStatsDoubleGroup(outdat_swe_small, quo(Vägtyp), quo(IndexKlass), quo
 st_write(outdat_swe_small, "C:/Users/winte/Swedenroads_outputs/swedenroads_2020_v2.shp", driver="ESRI Shapefile", append=TRUE) 
 
 # vscode://vscode.github-authentication/did-authenticate?windowid=1&code=931650176fe14d005e9d&state=f946fae0-8930-4a19-a358-43ff4dba1639
+
