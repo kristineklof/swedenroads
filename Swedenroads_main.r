@@ -28,6 +28,7 @@ lans_dt <- readRDS("C:/Users/winte/Swedenroads_outputs/lans_dt.rds")
 lan_surv_dt <- readRDS("C:/Users/winte/Swedenroads_outputs/lan_surv_dt_matning.rds")
 itShouldTestSurvivalData(dat = lan_surv_dt)
 str(lans_dt, list.len=ncol(lans_dt))
+head(lans_dt)
 
 # Lan and kommun
 lankom <- fread("C:/Users/winte/OneDrive/Documents/salbo.ai/Transportföretagen/Data/LänKommun.csv")
@@ -133,7 +134,7 @@ keeps <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_tung
 outdat_swe_small <- outdat_swe[, ..keeps]
 
 # Add PCI
-outdat_swe_small <- left_join(outdat_swe_small, id_pci[,c("Objectd", "PCI","PCIClass")], by = c("ID" = "Objectd"))
+outdat_swe_small <- left_join(outdat_swe_small, swedt_PCI[,c("Objectd", "PCI","PCIClass")], by = c("ID" = "Objectd"))
 
 # Byt namn på indexvariabler
 names(outdat_swe_small) <- c(keeps,"TillståndsIndex","IndexKlass")
