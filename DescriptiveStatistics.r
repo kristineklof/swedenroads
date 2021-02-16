@@ -23,6 +23,21 @@ uh_atg2019 <- QualitativeStatsSingleGroup(swedt_PCI[TrtmntD > "2019-01-01"], quo
 uh_atg2019 <- uh_atg2019 %>% arrange(desc(prop)) %>% top_n(n=10) 
 
 #############################################################################
+# Fördelning trafikklass mellan olika index
+index_below20 <- swedt_PCI %>%
+              group_by(tkl8) %>%
+              summarise(grouplen = sum(Length)/1000,
+                        IRI_Index_below = sum(Length[IRI_Ind <= 20], na.rm = TRUE)/1000/grouplen,
+                        Rut_Index_below = sum(Length[Rt_Indx <= 20], na.rm = TRUE)/1000/grouplen,
+                        RMS_Index_below = sum(Length[RMS_Ind <= 20 & RoadTyp == "Ordinary road"], na.rm = TRUE)/1000/grouplen,
+                        Tot_Index_below = sum(Length[PCI <= 20], na.rm = TRUE)/1000/grouplen,
+                        IRI_lenbelow = IRI_Index_below*grouplen,
+                        Rut_lenbelow = Rut_Index_below*grouplen,
+                        RMS_lenabove = RMS_Index_below*grouplen)
+
+print(index_below20, n=Inf)
+
+#############################################################################
 # Correlation between IRI and spårdjup
 inds <- c("Rt_Indx","IRI_Ind")
 cor(swedt_PCI[RoadTyp == "Ordinary road",..inds], use="complete.obs", method="pearson")
@@ -142,7 +157,7 @@ PlotIndexCurve <- function(cutoff, actual, x_lab){
                       axis.text.y = element_text(size=16),
                       axis.title = element_text(size=14)) +
                 scale_x_continuous(name=x_lab, limits=c(0, 4)) +
-                scale_y_continuous(name="IRI-indexvärde", breaks=seq(0,100,20))
+                scale_y_continuous(name="IRI-index", breaks=seq(0,100,20))
 
 
   return(p)              
@@ -153,15 +168,7 @@ cutoff <- (swedt_PCI$IRI_mnt)
 IRI_ceil <- if_else_na(swedt_PCI$IRI_r_p < 1, ceiling(swedt_PCI$IRI_r_p), swedt_PCI$IRI_r_p)
 actual <- swedt_PCI$IRI_mnt - IRI_ceil
 
-p <- PlotIndexCurve(cutoff, actual, x_lab = "Avvikelse från underhållstandard/IRI-värde underhållsstandard")
-print(p)
-
-# Spårdjup
-cutoff <- (swedt_PCI$IRI_mnt - 1)
-IRI_ceil <- if_else_na(swedt_PCI$IRI_r_p < 1, ceiling(swedt_PCI$IRI_r_p), swedt_PCI$IRI_r_p)
-actual <- swedt_PCI$IRI_mnt - IRI_ceil
-
-p <- PlotIndexCurve(cutoff, actual, x_lab = "(Mätvärde underhållsstandard + Mätvärde)/Mätvärde underhållsstandard")
+p <- PlotIndexCurve(cutoff, actual, x_lab = "Relativt IRI-värde")
 print(p)
 
 # IRI
@@ -169,7 +176,7 @@ cutoff <- (swedt_PCI$IRI_mnt - 1)
 IRI_ceil <- if_else_na(swedt_PCI$IRI_r_p < 1, ceiling(swedt_PCI$IRI_r_p), swedt_PCI$IRI_r_p)
 actual <- swedt_PCI$IRI_mnt - IRI_ceil
 
-p <- PlotIndexCurve(cutoff, actual, x_lab = "(Mätvärde underhållsstandard + Mätvärde)/Mätvärde underhållsstandard")
+p <- PlotIndexCurve(cutoff, actual, x_lab = "Mätvärde/Mätvärde underhållsstandard")
 print(p)
 
 # Index scatterplot
