@@ -10,6 +10,16 @@ swedt_PCI[, PCIClass := as.factor(PCIClass)]
 str(swedt_PCI)
 
 #############################################################################
+#  Studera sträckor med index under 20 som inte överskrider underhållstandard
+# eller åldersgränsen
+
+low <- swedt_PCI[PCI <= 20 & !(RMS_Ind <= 20 | IRI_Ind  <= 20 | Rt_Indx <= 20)]
+low <- swedt_PCI[PCI <= 20 & !(Age >= PrdctSL  | IRI_r_p  >= IRI_mnt | rt_m17_ >= SP_mant)]
+nrow(low)
+head(low)
+tail(low)
+
+#############################################################################
 #  Beräkna medelindex för alla vägar över 20
 mean(swedt_PCI[PCI > 20]$PCI)
 
@@ -224,6 +234,11 @@ print(p)
 p <- PlotIndexScatter(df = swedt_PCI, by_index=TRUE, x_lab = "VägID")
 print(p)
 
+# Look at sample
+samp_swedt <- swedt_PCI[sample(nrow(swedt_PCI), 20000),]
+setDT(samp_swedt)
+head(samp_swedt)
+samp_swedt[Age == 13 & PCI > 70]
 
 ##############################################################
 # Plot degradation curve
