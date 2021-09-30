@@ -23,9 +23,12 @@ source("DescriptiveStatsFunctions.r", encoding = 'UTF-8')
 source("Tests_Swedenroads_main.r", encoding = 'UTF-8')
 #source("ImportAndPreparePMSData.r", encoding = 'UTF-8')
 
+# Data
+datapath <- "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/"
+
 # Import survival data
-lans_dt <- readRDS("C:/Users/winte/Swedenroads_outputs/lans_dt.rds")
-lan_surv_dt <- readRDS("C:/Users/winte/Swedenroads_outputs/lan_surv_dt_matning.rds")
+lans_dt <- readRDS(paste0(datapath,"lans_dt.rds"))
+lan_surv_dt <- readRDS(paste0(datapath,"lan_surv_dt_matning.rds"))
 itShouldTestSurvivalData(dat = lan_surv_dt)
 str(lans_dt, list.len=ncol(lans_dt))
 head(lans_dt)
@@ -62,17 +65,17 @@ names_swe <- c("ID","Bärighetsklass","Hastighet","DoU2017","ÅDT_fordon","ÅDT_
 outdat_eng <- PrepareHomoNVDB(outcols = outcols, names_eng = names_eng, indat = nvdb_bel_mat, pmsdat = lans_dt, lankom = lankom)
 print(head(outdat_eng))
 itShouldTestEnglishOutput(outdat_eng)
-#saveRDS(outdat_eng, "C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
+#saveRDS(outdat_eng, paste0(datapath,"outdat_eng.rds")
 
 # Swedish version
 outdat_swe <- PrepareHomoSwe(outcols = outcols, names_eng = names_eng, names_swe = names_swe, indat = nvdb_bel_mat, pmsdat = lans_dt, survdat=lan_surv_dt, lankom = lankom)
 print(head(outdat_swe))
 itShouldTestSwedishOutput(outdat_swe)
-#saveRDS(outdat_swe, "C:/Users/winte/Swedenroads_outputs/outdat_swe.rds")
+#saveRDS(outdat_swe, paste0(datapath,"outdat_swe.rds")
 
 ###################################################################################################################
 ## Add predicted service life
-#outdat_eng <- readRDS("C:/Users/winte/Swedenroads_outputs/outdat_eng.rds")
+#outdat_eng <- readRDS(paste0(datapath,"outdat_eng.rds")
 
 outdat_eng <- CreateServiceLifeData(dat = outdat_eng, survdat=lan_surv_dt, metod = "AFT", 
                                           distribution = "lognormal", percentil_high = 0.5, percentil_low = 0.75,
@@ -102,7 +105,7 @@ outdat_eng_shape[, RoadWidth := RoadWidth/10]
 stopifnot(length(outdat_eng_life_shape$Objectid) == 437189) 
 
 # Export as shapefile
-st_write(outdat_eng_shape, "C:/Users/winte/Swedenroads_outputs/sweden_v3_201119.shp", driver="ESRI Shapefile", append=FALSE) 
+st_write(outdat_eng_shape, paste0(datapath,"sweden_v3_201119.shp"), driver="ESRI Shapefile", append=FALSE) 
 
 ###################################################################################################################
 ## Calculate PCI

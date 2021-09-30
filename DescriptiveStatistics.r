@@ -2,12 +2,45 @@
 #                 Descriptove statistics for the report
 #=================================================================#
 
-swedt_PCI <- st_read( "C:/Users/winte/Swedenroads_outputs/sweden_v3_pci201206.shp") 
+swedt_PCI <- st_read(paste0(datapath,"sweden_v3_pci201206.shp")) 
 setDT(swedt_PCI)
 
 swedt_PCI <- PCIClass(swedt_PCI)
 swedt_PCI[, PCIClass := as.factor(PCIClass)]
 str(swedt_PCI)
+
+#############################################################################
+#  Förväntad livslängd för olika beläggningar, ÅDT samt andel ÅDT tung
+age_bel_adt <- swedt_PCI %>%
+  mutate(Andel_tungtr = ifelse(AADT_hv/AADT >= 0.15, ">= 15 %", "< 15 %")) %>%
+  mutate(tkl8 = factor(tkl8, levels = c("1","2","3","4","5", "6", "7", "8"))) %>%
+  mutate(tkl8 = recode(tkl8, 
+                       "1" ="<250", 
+                       "2" = "250-499", 
+                       "3" = "500-999", 
+                       "4" = "1000-1999", 
+                       "5" = "2000-3999",
+                       "6" = "4000-7999",
+                       "7" = "8000-11999",
+                       "8" = ">=12000")) %>%
+  mutate(PvmntTy = factor(PvmntTy)) %>%
+  mutate(PvmntTy = recode(PvmntTy, 
+                       "Grouted macadam" ="Indränkt makadam", 
+                       "Half warm asphalt" = "Mjukbitumenbundet grus (MJOG)", 
+                       "Hot mix asphalt (asphalt concrete)" = "Asfaltsbetong (ABT)", 
+                       "Hot mix asphalt (stone mastic)" = "Asfaltsbetong, stenrik (ABS)", 
+                       "Seal coat" = "Försegling",
+                       "Other" = "Övrigt",
+                       "Thin asphalt layer" = "Tunnskiktsbeläggning",
+                       "Surface dressing on bituminous surface" = "Ytbehandling, bituminös",
+                       "Surface dressing on gravel" = "Ytbehandling, grus")) %>%
+  group_by(tkl8, Andel_tungtr, PvmntTy) %>%
+  summarise(forv = round(mean(PrdctSL, na.rm=TRUE),0),
+            medel = round(mean(Prd_50p, na.rm=TRUE),0))
+  
+print(age_bel_adt, n=Inf)
+write.xlsx(age_bel_adt, "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Kommunworkshop/alder_adt_bel.xlsx",
+           overwrite = TRUE)
 
 #############################################################################
 #  Studera sträckor med index under 20 som inte överskrider underhållstandard
