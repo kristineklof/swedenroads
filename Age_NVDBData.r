@@ -4,14 +4,14 @@
 
 IsDate <- function(x) inherits(x, "Date")
 
-CalculateAge <- function(TreatmentDate){
+CalculateAge <- function(TreatmentDate, DateToday="2020-01-01"){
     #print(IsDate(TreatmentDate))
     if(!IsDate(TreatmentDate)){
         TreatmentDate <- as.Date(as.character(TreatmentDate), format="%Y%m%d")
     }
 
     #TreatmentDate <- as.Date(TreatmentDate, origin = "1970-01-01")
-    Age <- year(as.Date("2020-01-01"))-year(TreatmentDate)
+    Age <- year(as.Date(DateToday))-year(TreatmentDate)
     return(as.integer(Age))
 }
 
