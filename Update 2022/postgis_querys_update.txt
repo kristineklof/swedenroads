@@ -1,0 +1,231 @@
+##########################################
+# Union of belaggning and matdata
+
+CREATE TABLE sweden_belaggning_2022 AS 
+SELECT * FROM "blekinge-belaggning-senaste-2022" 
+UNION SELECT * FROM "dalarna-belaggning-senaste-2022" 
+UNION SELECT * FROM "gavleborg-belaggning-senaste-2022" 
+UNION SELECT * FROM "gotland-belaggning-senaste-2022" 
+UNION SELECT * FROM "halland-belaggning-senaste-2022" 
+UNION SELECT * FROM "jamtland-belaggning-senaste-2022" 
+UNION SELECT * FROM "jonkoping-belaggning-senaste-2022" 
+UNION SELECT * FROM "kalmar-belaggning-senaste-2022" 
+UNION SELECT * FROM "kronoberg-belaggning-senaste-2022" 
+UNION SELECT * FROM "norrbotten-belaggning-senaste-2022" 
+UNION SELECT * FROM "orebro-belaggning-senaste-2022" 
+UNION SELECT * FROM "ostergotland-belaggning-senaste-2022" 
+UNION SELECT * FROM "skane-belaggning-senaste-2022" 
+UNION SELECT * FROM "sodermanland-belaggning-senaste-2022" 
+UNION SELECT * FROM "stockholm-belaggning-senaste-2022" 
+UNION SELECT * FROM "uppsala-belaggning-senaste-2022" 
+UNION SELECT * FROM "varmland-belaggning-senaste-2022" 
+UNION SELECT * FROM "vasterbotten-belaggning-senaste-2022" 
+UNION SELECT * FROM "vasternorrland-belaggning-senaste-2022" 
+UNION SELECT * FROM "vastmanland-belaggning-senaste-2022" 
+UNION SELECT * FROM "vastra gotaland-belaggning-senaste-2022"
+
+CREATE INDEX bel22_idx ON sweden_belaggning_2022 USING GIST (geom);
+
+CREATE TABLE sweden_matdata_2022 AS 
+SELECT * FROM "blekinge-matdata-senaste-2022" 
+UNION SELECT * FROM "dalarna-matdata-senaste-2022" 
+UNION SELECT * FROM "gavleborg-matdata-senaste-2022" 
+UNION SELECT * FROM "gotland-matdata-senaste-2022" 
+UNION SELECT * FROM "halland-matdata-senaste-2022" 
+UNION SELECT * FROM "jamtland-matdata-senaste-2022" 
+UNION SELECT * FROM "jonkoping-matdata-senaste-2022" 
+UNION SELECT * FROM "kalmar-matdata-senaste-2022" 
+UNION SELECT * FROM "kronoberg-matdata-senaste-2022" 
+UNION SELECT * FROM "norrbotten-matdata-senaste-2022" 
+UNION SELECT * FROM "orebro-matdata-senaste-2022" 
+UNION SELECT * FROM "ostergotland-matdata-senaste-2022" 
+UNION SELECT * FROM "skane-matdata-senaste-2022" 
+UNION SELECT * FROM "sodermanland-matdata-senaste-2022" 
+UNION SELECT * FROM "stockholm-matdata-senaste-2022" 
+UNION SELECT * FROM "uppsala-matdata-senaste-2022" 
+UNION SELECT * FROM "varmland-matdata-senaste-2022" 
+UNION SELECT * FROM "vasterbotten-matdata-senaste-2022" 
+UNION SELECT * FROM "vasternorrland-matdata-senaste-2022" 
+UNION SELECT * FROM "vastmanland-matdata-senaste-2022" 
+UNION SELECT * FROM "vastra gotaland-matdata-senaste-2022"
+
+CREATE INDEX mat22_idx ON sweden_matdata_2022 USING GIST (geom);
+
+#################################################################################### 
+# Add belaggning and matdata till swedenroads_2022 (when swedenroads_2022 already exists)
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN sparm17_22 NUMERIC,
+ADD COLUMN sparm15_22 NUMERIC,
+ADD COLUMN irih_22 NUMERIC,
+ADD COLUMN iriv_22 NUMERIC,
+ADD COLUMN kantdjup_22 NUMERIC;
+
+UPDATE swedenroads_2022 AS sw
+SET sparm17_22 = sq.sparm17, 
+	sparm15_22 = sq.sparm15,
+	irih_22 = sq.irih,
+	iriv_22 = sq.iriv,
+	kantdjup_22 = sq.kantdjup,
+	mat_ar_22 = sq.matdatum 
+FROM  (SELECT nb.id, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irih) AS irih,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+	FROM "swedenroads_2022" AS nb
+	LEFT JOIN "sweden_matdata_2022" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.id) AS sq
+WHERE  sw.id=sq.id;
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN matdatum DATE;
+
+UPDATE swedenroads_2022 AS sw
+SET matdatum_21 = sq.matdatum 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.matdatum AS matdatum,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS mat_intersect_len
+	FROM "swedenroads_2022" AS nv
+	LEFT JOIN "sweden_matdata_2022" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, mat_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN beldat_22 DATE,
+ADD COLUMN beltyp_22 VARCHAR,
+ADD COLUMN tillvm_22 VARCHAR,
+ADD COLUMN utlm_22 VARCHAR,
+ADD COLUMN korfalt_22 NUMERIC;
+
+UPDATE swedenroads_2022 AS sw
+SET beldat_22 = sq.beldat_22, 
+	beltyp_22 = sq.beltyp_22,
+	tillvm_22 = sq.tillvm_22,
+	utlm_22 = sq.utlm_22,
+	korfalt_22 = sq.korfalt_22 
+FROM  (SELECT DISTINCT ON (nv.id)
+	    nv.id,
+		b_all.beldatum AS beldat_22,
+		b_all.beltyp AS beltyp_22, 
+		b_all.tillvmetod AS tillvm_22,
+		b_all.utlmetod AS utlm_22,
+	 	b_all.korfalt AS korfalt_22,
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)) as bel22_intersect_len
+	FROM "swedenroads_2022" AS nv
+	LEFT JOIN "sweden_belaggning_2022" AS b_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)
+	ORDER BY nv.id, bel22_intersect_len DESC, b_all.korfalt
+) AS sq
+WHERE  sw.id=sq.id;
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN tackning_22 VARCHAR;
+
+UPDATE swedenroads_2022 AS sw
+SET tackning_22 = sq.tackning_22
+FROM  (SELECT DISTINCT ON (nv.id)
+	    nv.id,
+		b_all.tackning AS tackning_22, 
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)) as tack_intersect_len
+	FROM "swedenroads_2022" AS nv
+	LEFT JOIN "genomforda_atg_2020_2021_tackning" AS b_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)
+	ORDER BY nv.id, tack_intersect_len DESC, b_all.korfalt
+) AS sq
+WHERE  sw.id=sq.id;
+
+##########################################
+# Add belaggning till swedenroads
+
+CREATE TABLE "swedenroads_2022" AS 
+	(SELECT DISTINCT ON (nv.id)
+		nv.*,
+		b_all.beldatum AS beldat_21,
+		b_all.beltyp AS beltyp_21, 
+		b_all.tillvmetod AS tillvm_21,
+		b_all.utlmetod AS utlm_21,
+		b_all.riktning AS rikt_21,
+	 	b_all.korfalt AS korfalt_21,
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)) as bel_intersect_len
+	FROM "swedenroads_2020" AS nv
+	LEFT JOIN "sweden_belaggning_2022" AS b_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)
+	ORDER BY nv.id, bel_intersect_len DESC, b_all.riktning, b_all.korfalt
+)
+
+CREATE INDEX swedenroads_2022_idx ON swedenroads_2022 USING GIST (geom);
+ALTER TABLE swedenroads_2022 ADD PRIMARY KEY (id);
+
+#############################################
+# Add matdata till swedenroads when swedenroads_2022 does not exist
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN sparm17_21 NUMERIC,
+ADD COLUMN sparm15_21 NUMERIC,
+ADD COLUMN irih_21 NUMERIC,
+ADD COLUMN iriv_21 NUMERIC,
+ADD COLUMN kantdjup_21 NUMERIC;
+
+UPDATE swedenroads_2022 AS sw
+SET sparm17_21 = sq.sparm17, 
+	sparm15_21 = sq.sparm15,
+	irih_21 = sq.irih,
+	iriv_21 = sq.iriv,
+	kantdjup_21 = sq.kantdjup
+FROM  (SELECT nb.id, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irih) AS irih,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.iriv) AS iriv,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+	FROM "swedenroads_2022" AS nb
+	LEFT JOIN "sweden_matdata_2022" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.id) AS sq
+WHERE  sw.id=sq.id;
+
+#############################################
+# Add new NVDB data to swedenroads
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN matdatum DATE;
+
+UPDATE swedenroads_2022 AS sw
+SET matdatum_21 = sq.matdatum 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.matdatum AS matdatum,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS mat_intersect_len
+	FROM "swedenroads_2022" AS nv
+	LEFT JOIN "sweden_matdata_2022" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, mat_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+#############################################
+# Add mätår to swedenroads
+
+ALTER TABLE "swedenroads_2022"
+ADD COLUMN mat_ar_21 NUMERIC;
+
+UPDATE swedenroads_2022 AS sw
+SET mat_ar_21 = sq.matdatum, 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.matdatum AS matdatum,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS mat_intersect_len
+	FROM "swedenroads_2022" AS nv
+	LEFT JOIN "sweden_matdata_2022" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, mat_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+	
+
+
+
+
