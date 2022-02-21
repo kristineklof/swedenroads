@@ -19,10 +19,10 @@ PCIClass <- function(dat){
   return(dat)
 }
 
-CreatePCI <- function(dat){
+CreatePCI <- function(dat, datum = "2019-01-01"){
     setDT(dat)
     dat <- CreateIndex(dat)
-    dat <- PCI(dat)
+    dat <- PCI(dat, datum)
 
     return(setDT(dat))
 }
@@ -79,7 +79,7 @@ CreateIndex <- function(dat){
     return(dat)
 }
 
-PCI <- function(dat){
+PCI <- function(dat, datum){
     setDT(dat)
 
    dat[, Matning_min := pmin(IRI_Index, Rut_Index, na.rm=TRUE)]
@@ -95,7 +95,7 @@ PCI <- function(dat){
                             Matning_RMS_min, PCI)]   
    dat[, PCI := ifelse((RoadTyp %in% c("Motorway", "Undivided motorway", "4-lane road", "2+1 road")) & !is.na(Matning_min),
                         Matning_min, PCI)]     
-   dat[, PCI :=  if_else_na(TrtmntD > MsrmntD | TrtmntD >= as.Date("2019-01-01"), RMS_Index, PCI)] 
+   dat[, PCI :=  if_else_na(TrtmntD > MsrmntD | TrtmntD >= as.Date(datum), RMS_Index, PCI)] 
    dat[, PCI :=  if_else_na(is.na(PCI) & !is.na(Matning_mean), Matning_mean, PCI)]   
 
   dat[, PCI := round(PCI, digits=0)]
@@ -113,7 +113,7 @@ itShouldCreatePCI <- function(){
                           TrtmntD = as.Date(c("2018-05-05","2018-05-05","2018-05-05","2018-05-05","2018-05-05","2019-05-05","2018-05-05","2018-05-05")),
                           MsrmntD = as.Date(c("2019-05-05","2017-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2017-05-05")))
     
-    res <- PCI(testdat)
+    res <- PCI(testdat, datum="2019-01-01")
     gold <- c(86, 90, 15, 5, 20, 40, 25, 30)
     #print(res)
     stopifnot(gold == res$PCI)
