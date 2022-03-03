@@ -57,13 +57,83 @@ TrafficClass2022 <- function(dat){
   return(dat)
 }
 
-ChangeBeltyp <- function(Blggnngst){
-  beltyp_imp <- if_else_na(vagtyp == 1, 3, 
-                       if_else_na(vagtyp == 2, 5, 
-                                  if_else_na(vagtyp == 3, 1, 
-                                             if_else_na(vagtyp == 4, 2,
-                                                        if_else_na(vagtyp == 5, 4,
-                                                                   if_else_na(vagtyp == 6, 1, NA))))))
-  return(Blggnngst)
+ChangeBeltyp <- function(blggnngst){
+  beltyp <- if_else_na(blggnngst == 1, "Varm", 
+                       if_else_na(blggnngst == 2, "Försegling", 
+                                  if_else_na(blggnngst == 3, "Halvvarm", 
+                                             if_else_na(blggnngst == 4, "Indränkt makadam",
+                                                        if_else_na(blggnngst == 5, "Tunnskikt",
+                                                                   if_else_na(blggnngst == 6, "Varm stenrik",
+                                                                              if_else_na(blggnngst == 7, "Ytbehandling på bituminöst underlag",
+                                                                                         if_else_na(blggnngst == 8, "Ytbehandling på grus",
+                                                                                                    if_else_na(blggnngst == 9, "Övrigt",NA)))))))))
+  return(beltyp)
 }
 
+ConditionComparisonBetweenYears <- function(dat1,dat2,grp,grp_name,single=FALSE){
+  if(single){
+    pci_2020 <- QualitativeStatsSingleGroup(dat1, quo(indxkls), quo(längd))
+    pci_2020 <- pci_2020 %>% 
+      dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen20 = round(grouplen,0)) %>%
+      dplyr::mutate(prop20 = prop*100) %>%
+      dplyr::mutate(prop20 = round(prop20,1)) %>%
+      dplyr::select(-c(prop, grouplen,indxkls))
+    
+    pci_2022 <- QualitativeStatsSingleGroup(dat2, quo(PCIClass_22), quo(längd))
+    pci_2022 <- pci_2022 %>% 
+      dplyr::mutate(PCIClass = factor(PCIClass_22, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen22 = round(grouplen,0)) %>%
+      dplyr::mutate(prop22 = prop*100) %>%
+      dplyr::mutate(prop22 = round(prop22,1)) %>%
+      dplyr::select(-c(prop, grouplen,PCIClass_22))
+    
+    pci_2022_vs_2020 <- dplyr::left_join(pci_2020, pci_2022, by=c("PCIClass"))
+    pci_2022_vs_2020 <- na.omit(pci_2022_vs_2020)
+  } else {
+    pci_2020 <- QualitativeStatsDoubleGroup(dat1, grp, quo(indxkls), quo(längd))
+    pci_2020 <- pci_2020 %>% 
+      dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen20 = round(grouplen,0)) %>%
+      dplyr::mutate(prop20 = prop*100) %>%
+      dplyr::mutate(prop20 = round(prop20,1)) %>%
+      dplyr::select(-c(prop, grouplen,indxkls))
+    
+    pci_2022 <- QualitativeStatsDoubleGroup(dat2, grp, quo(PCIClass_22), quo(längd))
+    pci_2022 <- pci_2022 %>% 
+      dplyr::mutate(PCIClass = factor(PCIClass_22, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen22 = round(grouplen,0)) %>%
+      dplyr::mutate(prop22 = prop*100) %>%
+      dplyr::mutate(prop22 = round(prop22,1)) %>%
+      dplyr::select(-c(prop, grouplen,PCIClass_22))
+    
+    pci_2022_vs_2020 <- dplyr::left_join(pci_2020, pci_2022, by=c(grp_name, "PCIClass"))
+    pci_2022_vs_2020 <- na.omit(pci_2022_vs_2020)
+  }
+
+  return(pci_2022_vs_2020)
+}
+
+ComparisonBetweenYears <- function(dat1,dat2,grp,grp_name){
+  var_2020 <- QualitativeStatsSingleGroup(dat1, grp, quo(längd))
+  var_2020 <- var_2020 %>% 
+    dplyr::mutate(grouplen20 = round(grouplen,0)) %>%
+    dplyr::mutate(prop20 = prop*100) %>%
+    dplyr::mutate(prop20 = round(prop20,1)) %>%
+    dplyr::select(-c(prop, grouplen))
+  
+  var_2022 <- QualitativeStatsSingleGroup(dat2, grp, quo(längd))
+  var_2022 <- var_2022 %>% 
+    dplyr::mutate(grouplen22 = round(grouplen,0)) %>%
+    dplyr::mutate(prop22 = prop*100) %>%
+    dplyr::mutate(prop22 = round(prop22,1)) %>%
+    dplyr::select(-c(prop, grouplen))
+  
+  var_2022_vs_2020 <- dplyr::left_join(var_2020, var_2022, by=c(grp_name))
+
+  return(var_2022_vs_2020)
+}
