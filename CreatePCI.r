@@ -55,10 +55,14 @@ itShouldCreateIndex <- function(){
 
     res_rms <- Index(actual = testdat$RmnngSL, cutoff = testdat$PrdctSL)
     #print(res_rms)
-
+    
     gold_iri <- c(NA, 100, 20, 0)
     gold_sp <- c(NA, 72, 14, 4)
     gold_rms <- c(4, 17, 85, 100)
+
+    #gold_iri <- c(NA, 100, 20, 0.358)
+    #gold_sp <- c(NA, 72.478, 14.496, 4)
+    #gold_rms <- c(4, 17.027, 85.134, 100)
 
     stopifnot(identical(res_iri, gold_iri))
     stopifnot(identical(res_sp, gold_sp))
