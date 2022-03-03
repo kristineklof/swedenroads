@@ -25,10 +25,13 @@ source("Update 2022/UpdateDataFunctions.r", encoding = 'UTF-8')
 #source("ImportAndPreparePMSData.r", encoding = 'UTF-8')
 
 datapath <- "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/"
+# Lan and kommun
+lankom <- fread(paste0(datapath,"LänKommun_TRV.csv"), encoding = 'UTF-8')
 
 # Import 2020 NVDB-data
 nvdb_2020 <- st_read(paste0(datapath,"nvdb_surv_sweden_75perc_matdatum.shp"), options = "ENCODING=WINDOWS-1252")
 swedenroads_2020 <- st_read(paste0(datapath,"swedenroads_2020_v4.shp"), options = "ENCODING=WINDOWS-1252")
+sw22_geo <- swedenroads_2020[,c("ID")]
 
 # Import survival data
 lans_dt <- readRDS(paste0(datapath,"lans_dt.rds"))
@@ -39,12 +42,14 @@ swedenroads_2022 <- st_read(paste0(datapath,"2022/swedenroads_2022.shp"))
 
 # Drop geometry for analytical purposes
 sweden22 <- st_drop_geometry(swedenroads_2022)
-head(sweden22)
-str(sweden22)
 
 # Change vagtyp
 sweden22 <- sweden22 %>%
   dplyr::mutate(vagtyp_21 = ChangeVagtyp(vagtyp_21))
+
+# Add beläggning 2022
+sweden22_comp  <- sweden22 %>% dplyr::mutate(PavementType = ChangeBeltyp(blggnngst)) %>%
+  dplyr::mutate(PavementType = as.factor(PavementType)) 
 
 #########################################
 # Uppdatera variabler
@@ -61,7 +66,7 @@ sw22 <- sw22 %>% dplyr::mutate(adt_mat_21 = substr(as.character(adt_mat_21), 1, 
 # Uppdatera NVDB variabler
 sw22 <- sw22 %>% 
   dplyr::mutate(brghtsk = if_else_na(brghtsk != barig_21, barig_21, brghtsk)) %>%
-  dplyr::mutate(hastght = if_else_na(hastght != hast_21, hast_21, hastght)) %>%
+  #dplyr::mutate(hastght = if_else_na(hastght != hast_21, hast_21, hastght)) %>%
   dplyr::mutate(dou2017 = if_else_na(dou2017 != dou_21, dou_21, dou2017)) %>%
   dplyr::mutate(Ådt_frd = if_else_na(Ådt_frd !=  adt_21,  adt_21, Ådt_frd)) %>%
   dplyr::mutate(Ådt_tng = if_else_na(Ådt_tng != adt_tung_2, adt_tung_2, Ådt_tng)) %>%
@@ -73,12 +78,6 @@ sw22 <- sw22 %>%
 # Uppdatera trafikklass
 sw22 <- TrafficClass2022(sw22)
   
-QualitativeStatsSingleGroup(sw22, quo(brghtsk), quo(längd))
-QualitativeStatsSingleGroup(sw22, quo(hastght), quo(längd))
-QualitativeStatsSingleGroup(sw22, quo(dou2017), quo(längd))
-QualitativeStatsSingleGroup(sw22, quo(vägtyp), quo(längd))
-QualitativeStatsSingleGroup(sw22, quo(trfkkls), quo(längd))
-
 #########################################
 # Beräkna ny livslängd
 
@@ -98,28 +97,15 @@ nv20 <- st_drop_geometry(nvdb_2020[c("omfttnn","objectid")])
 sw22 <- dplyr::left_join(sw22, nv20[c("omfttnn","objectid")],
                          by = c("id"="objectid"))
 sw22 <- sw22 %>% dplyr::mutate(tackning = if_else(!is.na(tackning_2), tackning_2, omfttnn))
-# cv <- c("Tackning","LanKod","BELDAT","Beltyp","TillverkningsMetod","UtlaggningsMetod")
-# cv22 <- cover22[, ..cv]
-# cv22 <- cv22 %>% 
-#   mutate(BELDAT = as.numeric(BELDAT)) %>% 
-#   mutate(BELDAT = as.Date(BELDAT, origin = "1970-01-01"))    
-# sw22 <- dplyr::left_join(sw22, cv22,
-#                          by = c("län_nr"="LanKod",
-#                                 "beldat_22" = "BELDAT",
-#                                 "beltyp_22" = "Beltyp",
-#                                 "tillvm_22" = "TillverkningsMetod",
-#                                   "utlm_22" = "UtlaggningsMetod"))
-# sw22 <- sw22 %>% dplyr::mutate(Tackning = omfttnn) %>%
-#   dplyr::select(-omfttnn)
 
-svars <- c("id","trfkkls", "adt_21", "adt_tung_2", "PavementType", "region", 
-  "brghtsk", "vägtyp", "vägbrdd", "hastght","tackning","Ålder")
+svars <- c("id","trfkkls", "Ådt_frd", "Ådt_tng", "PavementType", "region", 
+  "brghtsk", "vägtyp", "vägbrdd", "hastght","tackning","Ålder", "län_nr")
 sw22_servlife <- sw22[,..svars]
 
 sw22_servlife <- sw22_servlife %>% 
   dplyr::rename(BearingCapacityClass = brghtsk) %>%
-  dplyr::rename(AADT = adt_21) %>%
-  dplyr::rename(AADT_heavy = adt_tung_2) %>%
+  dplyr::rename(AADT = Ådt_frd) %>%
+  dplyr::rename(AADT_heavy = Ådt_tng) %>%
   dplyr::rename(tkl8 = trfkkls) %>%
   dplyr::rename(SpeedLimit = hastght) %>%
   dplyr::rename(Coverage = tackning) %>%
@@ -137,9 +123,10 @@ sw22_servlife <- sw22_servlife %>%
                                                             if_else(vägtyp == 4, "Ordinary road", "Undivided motorway"))))) %>%
   select(-c("vägtyp", "vägbrdd"))
 
-head(sw22)
-  
-sw22_servlife <- CreateServiceLifeData(sw22_servlife, survdat=lan_surv_dt, metod = "AFT", 
+lan_surv_dt_gotland <- lan_surv_dt %>% 
+  dplyr::mutate(Region = if_else(LAN_nr == 9, "Gotland", Region))
+
+sw22_servlife <- CreateServiceLifeData(sw22_servlife, survdat=lan_surv_dt_gotland, metod = "AFT", 
                                        distribution = "lognormal", percentil_high = 0.5, percentil_low = 0.75,
                                        div = "no")
 
@@ -159,7 +146,6 @@ sw22 <- sw22 %>%
 
 #########################################
 # Beräkna PCI
-
 pci_data <- sw22 %>% dplyr::select(id, PredictedServiceLife, RemainingServiceLife,
                            IRI_maint, SP_maint, sparm17_22, sparm15_22, irih_22, 
                            blggnngsd, mätdatm, RoadType, vägbrdd, trfkkls) %>%
@@ -195,7 +181,3 @@ pci_data <- pci_data %>% dplyr::select(id, IRI_Index_22,
 sw22 <- dplyr::left_join(sw22, pci_data, by="id")
 
 
-head(pci_data)
-head(lan_surv_dt)  
-table(cover22$Tackning)
-head(sw22)

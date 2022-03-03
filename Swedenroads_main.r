@@ -34,7 +34,7 @@ str(lans_dt, list.len=ncol(lans_dt))
 head(lans_dt)
 
 # Lan and kommun
-lankom <- fread(paste0(datapath,"LänKommun_TRV.csv"))
+lankom <- fread(paste0(datapath,"LänKommun_TRV.csv"), encoding = 'UTF-8')
 
 # Import NVDB data
 nvdb_bel_mat_org <- st_read("C:/Users/winte/Swedenroads_homo_v2/nvdb_surv_sweden_75perc_matdatum.shp")
