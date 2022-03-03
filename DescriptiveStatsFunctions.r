@@ -29,7 +29,7 @@ QualitativeStatsDoubleGroup <- function(df, grp.var, grp.var2, uniq.var){
               summarise(grouplen = sum(!!uniq.var)/1000) %>%
               mutate(prop = grouplen/sum(grouplen))
 
-    return(print(classlengtht, n=Inf))
+    return(classlengtht)
 }
 
 
