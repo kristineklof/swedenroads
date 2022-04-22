@@ -4,9 +4,15 @@
 
 source("LoadInstall.R")
 deps <- c("sf", "data.table","tidyverse","survival","fasttime","survminer",
-          "openxlsx", "writexl","gridExtra", "ggrepel", "xtable", "pracma")
+          "openxlsx", "writexl","gridExtra", "ggrepel", "xtable", "pracma",
+          "viridis","remotes","extrafont","gtable","cowplot","grid",
+          "RColorBrewer","ggpattern")
 LoadInstall(deps)
 options(scipen=999)
+#remotes::install_version("Rttf2pt1", version = "1.3.8")
+#extrafont::font_import()
+extrafont::loadfonts(device = "win")
+windowsFonts("Arial" = windowsFont("Arial"))
 
 #source("ImportNVDB_Data.R")
 source("SurvivalAnalysisData.r", encoding = 'UTF-8')
@@ -20,6 +26,7 @@ source("CombineBeltyp.r", encoding = 'UTF-8')
 source("CalculateRemainingServiceLife.r", encoding = 'UTF-8')
 source("CreatePCI.r", encoding = 'UTF-8')
 source("DescriptiveStatsFunctions.r", encoding = 'UTF-8')
+source("ShiftLegendFunction.r", encoding = 'UTF-8')
 source("Tests_Swedenroads_main.r", encoding = 'UTF-8')
 source("Update 2022/UpdateDataFunctions.r", encoding = 'UTF-8')
 #source("ImportAndPreparePMSData.r", encoding = 'UTF-8')
@@ -47,7 +54,7 @@ sweden22 <- st_drop_geometry(swedenroads_2022)
 sweden22 <- sweden22 %>%
   dplyr::mutate(vagtyp_21 = ChangeVagtyp(vagtyp_21))
 
-# Add beläggning 2022
+# Add beläggning
 sweden22_comp  <- sweden22 %>% dplyr::mutate(PavementType = ChangeBeltyp(blggnngst)) %>%
   dplyr::mutate(PavementType = as.factor(PavementType)) 
 
@@ -82,12 +89,12 @@ sw22 <- TrafficClass2022(sw22)
 # Beräkna ny livslängd
 
 # Uppdatera ålder
-sw22 <- sw22 %>% dplyr::mutate(blggnngsd = if_else_na(blggnngsd != beldat_22, beldat_22, blggnngsd)) %>%
+sw22 <- sw22 %>% dplyr::mutate(blggnngsd = UpdateBelaggningsdatum(blggnngsd, beldat_22)) %>%
   dplyr::mutate(blggnngsd = as.Date(blggnngsd, origin="1970-01-01")) %>%
   dplyr::mutate(Ålder = CalculateAge(blggnngsd,"2022-01-01"))
 
 # Uppdatera mätningar
-sw22 <- sw22 %>% dplyr::mutate(mätdatm = if_else_na(mätdatm != matdatum_2, matdatum_2, mätdatm)) %>%
+sw22 <- sw22 %>% dplyr::mutate(mätdatm = UpdateMatdatum(mätdatm, matdatum_2)) %>%
   dplyr::mutate(mätdatm = as.Date(mätdatm, origin="1970-01-01")) %>%
   dplyr::mutate(iri = if_else_na(!is.na(irih_22), irih_22, iri)) %>%
   dplyr::mutate(spårdjp = UpdateSpårdjup(spårdjp, sparm17_22, sparm15_22, vägbrdd))

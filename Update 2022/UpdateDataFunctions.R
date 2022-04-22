@@ -21,6 +21,51 @@ itShouldChangeValuesOfVariableVagtyp <- function(){
 
 itShouldChangeValuesOfVariableVagtyp()
 
+ChangeRegion <- function(region){
+  Region <- if_else(region == 1, "Mitt",
+                    if_else(region == 2, "Nord",
+                            if_else(region == 3, "Ost",
+                                    if_else(region == 4, "Sthlm",
+                                            if_else(region == 5, "Syd", "Vast")))))
+  return(Region)
+}
+
+itShouldChangeValuesOfVariableRegion <- function(){
+  region <- c(1, 1, 3, 2, 4, 6, 5)
+  res <- ChangeRegion(region)
+  gold <- c("Mitt", "Mitt", "Ost", "Nord", "Sthlm", "Vast", "Syd")
+  stopifnot(gold == res)
+}
+
+itShouldChangeValuesOfVariableRegion()
+
+UpdateMatdatum <- function(mätdatm, new_matdatum){
+  matdat <- if_else_na(mätdatm != new_matdatum | (is.na(mätdatm) & !is.na(new_matdatum)), 
+                       new_matdatum, mätdatm)
+  
+  return(matdat)
+}
+
+UpdateBelaggningsdatum <- function(blggnngsd, new_beldat){
+  beldat <- if_else_na(blggnngsd != new_beldat | (is.na(blggnngsd) & !is.na(new_beldat)), 
+                       new_beldat, blggnngsd)
+
+  return(beldat)
+}
+
+itShouldUpdateBelaggningsdatum <- function(){
+  dat <- data.frame(blggnngsd = as.Date(c(NA,"2018-05-30","2007-06-25","2017-06-25")),
+                    beldat_22 = as.Date(c("2018-11-30","2020-08-25","2007-06-25","2007-06-25")))
+  
+  res <- dat %>% 
+    dplyr::mutate(blggnngsd = UpdateBelaggningsdatum(blggnngsd, beldat_22))
+  gold <- as.Date(c("2018-11-30","2020-08-25","2007-06-25","2007-06-25"))
+  
+  stopifnot(res$blggnngsd == gold)
+}
+
+itShouldUpdateBelaggningsdatum()
+
 UpdateSpårdjup <- function(oldspar, nyspar_17, nyspar_15, vagbr){
   spårdjp <- if_else_na(vagbr > 6 & !is.na(nyspar_17), nyspar_17, oldspar)
   spårdjp <- if_else_na(vagbr <= 6 & !is.na(nyspar_15), nyspar_15, spårdjp)
@@ -68,6 +113,30 @@ ChangeBeltyp <- function(blggnngst){
                                                                                          if_else_na(blggnngst == 8, "Ytbehandling på grus",
                                                                                                     if_else_na(blggnngst == 9, "Övrigt",NA)))))))))
   return(beltyp)
+}
+
+ChangeBeltypNumerisk <- function(blggnngst){
+  beltyp <- if_else_na(blggnngst == "Varm", 1, 
+                       if_else_na(blggnngst == "Försegling", 2, 
+                                  if_else_na(blggnngst == "Halvvarm", 3, 
+                                             if_else_na(blggnngst == "Indränkt makadam", 4, 
+                                                        if_else_na(blggnngst == "Tunnskikt",5, 
+                                                                   if_else_na(blggnngst == "Varm stenrik",6, 
+                                                                              if_else_na(blggnngst == "Ytbehandling på bituminöst underlag",7, 
+                                                                                         if_else_na(blggnngst == "Ytbehandling på grus",8, 
+                                                                                                    if_else_na(blggnngst == "Övrigt",9, NA)))))))))
+  return(beltyp)
+}
+
+ChangeTackningNumerisk <- function(tackning){
+  tackning <- if_else_na(tackning == "Heltäckande", 1, 
+                       if_else_na(tackning == "Fläckvis <20%", 2, 
+                                  if_else_na(tackning == "Fläckvis >20%", 3, 
+                                             if_else_na(tackning == "Spårlagning", 2, 
+                                                        if_else_na(tackning == "Kanthäng",2, 
+                                                                   if_else_na(tackning == "Fläckvis spårlagning",2, 
+                                                                              if_else_na(tackning == "Fläckvis",2, NA)))))))
+  return(tackning)
 }
 
 ConditionComparisonBetweenYears <- function(dat1,dat2,grp,grp_name,single=FALSE){
