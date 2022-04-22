@@ -32,7 +32,14 @@ QualitativeStatsDoubleGroup <- function(df, grp.var, grp.var2, uniq.var){
     return(classlengtht)
 }
 
-
+QualitativeStatsTripleGroup <- function(df, grp.var, grp.var2, grp.var3, uniq.var){
+    classlengtht <- df %>%
+        group_by(!!grp.var, !!grp.var2, !!grp.var2) %>%
+        summarise(grouplen = sum(!!uniq.var)/1000) %>%
+        mutate(prop = grouplen/sum(grouplen))
+    
+    return(classlengtht)
+}
 
 QualitativeStatsSingleGroupTA <- function(df, grp.var, uniq.var, traf.var){
     classlengtht <- df %>%
