@@ -5,6 +5,10 @@
 ##########################################################
 # Validation file
 
+# Join with län and kommunnamn
+sw22 <- dplyr::left_join(sw22,lankom,by=c("län_nr" = "Län",
+                                          "kmmn_nr" = "Kommunnr"))
+
 # Join with geometry
 sw22_full_geo <- dplyr::left_join(sw22,sw22_geo, by=c("id" = "ID"))
 st_write(sw22_full_geo, paste0(datapath,"2022/sweden_2022_validation_file.shp"))
@@ -165,5 +169,5 @@ QualitativeStatsSingleGroup(swedenroads_2022, quo(IKls_2), quo(längd))
 QualitativeStatsSingleGroup(swedenroads_2022, quo(IKls_3), quo(längd))
 
 # Export
-st_write(swedenroads_2022, paste0(datapath,"2022/swedenroads_v1_2022.shp"))
+st_write(swedenroads_2022, paste0(datapath,"2022/VåraVägar/swedenroads_v1_2022.shp"))
 
