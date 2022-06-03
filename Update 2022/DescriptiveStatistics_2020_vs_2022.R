@@ -234,7 +234,9 @@ cond_v <- sw22 %>%
   group_by(RoadType, Year, PCIClass) %>%
   summarise(grouplen = sum(längd)/1000) %>%
   mutate(percentage = grouplen/sum(grouplen)) %>%
-  ggplot(aes(x = Year, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,digits=0)," %"))) +
+  mutate(percentage = ifelse(RoadType == "2+1 väg" & PCIClass == "Mycket dålig" & Year == 2022, 
+                             0.0655, percentage)) %>%
+  ggplot(aes(x = Year, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,0)," %"))) +
   geom_bar(position = 'fill', stat = 'identity') +
   facet_wrap(~ RoadType, nrow = 1) +
   scale_fill_manual(values=fill) +
