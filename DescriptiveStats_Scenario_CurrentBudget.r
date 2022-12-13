@@ -3,10 +3,10 @@
 #                    Scenario 1 - current budget
 #=================================================================#
 
-swedt_PCI <- st_read( "C:/Users/winte/Swedenroads_outputs/sweden_v3_pci201206.shp") 
+swedt_PCI <- st_read( "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/sweden_v3_pci201206.shp") 
 setDT(swedt_PCI)
 #pci2030 <- read.xlsx("C:/Users/winte/Swedenroads_outputs/2030_PCI_20201218.xlsx")
-pci2030 <- fread("C:/Users/winte/Swedenroads_outputs/7018-Scenario6.csv")
+pci2030 <- fread("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/7018-Scenario6.csv")
 
 head(pci2030)
 names(pci2030) <- c("Objectd","Year","PCI")
