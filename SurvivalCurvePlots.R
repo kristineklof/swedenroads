@@ -53,12 +53,27 @@ theme <- theme(axis.line = element_line(colour = "black"),
                panel.grid.minor = element_line(colour = "grey90"),
                panel.border = element_blank(),
                panel.background = element_blank(),
-               legend.title = element_text(size=16),
-               legend.text = element_text(size=16),
-               axis.title.y = element_text(size=16),
-               axis.text.y = element_text(size=16),
-               axis.title.x = element_text(size=16),
-               axis.text.x = element_text(size=16)) 
+               legend.title = element_text(size=14),
+               legend.text = element_text(size=14),
+               axis.title.y = element_text(size=14),
+               axis.text.y = element_text(size=14),
+               axis.title.x = element_text(size=14),
+               axis.text.x = element_text(size=14)) 
+
+p = ggsurvplot(fKM, data = survdata, 
+               censor = FALSE,
+               color = "strata",
+               linetype = "solid", 
+               risk.table = TRUE,
+               fontsize = 4,
+               break.x.by = 5, 
+               ggtheme=theme,
+               risk.table.title = "Antal vägsträckor som ännu ej fått en underhållsåtgärd",
+               legend.labs = c("250", "250-499", "500-999", "1000-1999", "2000-3999", "4000-7999", "8000-11999", "12000"),
+               legend = c("none"),
+               legend.title = "Trafikmängd (fordon/dygn)",
+               xlab = "Ålder (år)",
+               ylab = "Sannolikhet att ej behöva underhåll") 
 
 p = ggsurvplot(fKM, data = survdata, 
                censor = FALSE,
@@ -67,15 +82,19 @@ p = ggsurvplot(fKM, data = survdata,
                risk.table = FALSE,
                break.x.by = 5, 
                ggtheme=theme,
-               risk.table.title = "Antal vägsträckor som ännu ej fått en underhållsåtgärd",
                legend.labs = c("<250", "250-499", "500-999", "1000-1999", "2000-3999", "4000-7999", "8000-11999", ">12000"),
-               legend = c("bottom"),
-               legend.title = "Trafikmängd (fordon/dygn)",
-               xlab = "Ålder (år)",
-               ylab = "Sannolikhet att ej behöva underhåll") 
+               legend = c("right"),
+               legend.title = "AADT (traffic/day)",
+               xlab = "Age (years)",
+               ylab = "Probability of not yet recieved maintenance") 
 print(p)
-p$plot <- p$plot + geom_hline(yintercept=0.25, linetype="solid", size = 2) + geom_hline(yintercept=0.5, linetype="dashed", size = 2)
-#p$plot = p$plot + geom_line(data=df, aes(x=time, y=y, group=tkl8))
+p$plot <- p$plot + 
+  geom_hline(yintercept=0.25, linetype="solid", size = 2) +
+  geom_hline(yintercept=0.5, linetype="dashed", size = 2)
+p$plot = p$plot + 
+  geom_line(data=df, 
+            aes(x=time, y=y, 
+                color=tkl8), size=1)
 print(p) 
 
 # Expected lifetimes for 11 family classes
