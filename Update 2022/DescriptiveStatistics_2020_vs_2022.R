@@ -11,6 +11,7 @@ nybel_2019_2021 <- QualitativeStatsSingleGroup(sweden22, quo(ny_bel), quo(längd
 nybel_2019_2021
 
 # Beläggning 2020-2022 per tillståndsklass och trafikmängd
+# procent
 nybel_age <- sweden22 %>% drop_na(trfkkls) %>%
   dplyr::mutate(trfkkls = factor(trfkkls)) %>%
   dplyr::mutate(trfkkls  = recode(trfkkls , 
@@ -52,6 +53,96 @@ nybel_age <- sweden22 %>% drop_na(trfkkls) %>%
          color = "none") +
   scale_y_continuous(labels = scales::percent) 
 grid::grid.draw(ShiftLegend(nybel_age))
+
+# Beläggning 2020-2022 per tillståndsklass och trafikmängd
+# kilometer
+nybel_age_km <- sweden22 %>% drop_na(trfkkls) %>%
+  dplyr::mutate(trfkkls = factor(trfkkls)) %>%
+  dplyr::mutate(trfkkls  = recode(trfkkls , 
+                                  "1" ="<250 fordon/dygn", 
+                                  "2" = "250-499",
+                                  "3" = "500-999", 
+                                  "4" = "1000-1999", 
+                                  "5" = "2000-3999",
+                                  "6" = "4000-7999",
+                                  "7" = "8000-11999",
+                                  "8" = ">12000")) %>%
+  dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+  dplyr::mutate(PCIClass = recode(PCIClass, 
+                                  "5" ="Mycket bra", 
+                                  "4" = "Bra", 
+                                  "3" = "Tillfredsställande", 
+                                  "2" = "Dålig", 
+                                  "1" = "Mycket dålig")) %>%
+  group_by(trfkkls, PCIClass, ny_bel) %>%
+  summarise(grouplen = sum(längd)/1000) %>%
+  ggplot(aes(x = PCIClass, y = grouplen, 
+             fill = ny_bel, col = PCIClass)) +
+  geom_bar(position = 'stack', stat = 'identity', size = 1) +
+  facet_wrap(~trfkkls, scales='free') +
+  scale_color_manual(values=fill) +
+  scale_fill_manual(values = c("gray37","gray68")) +
+  labs(y="", x = "") +
+  theme_minimal() +
+  theme(legend.position="bottom",
+        legend.title=element_text(size=14),
+        legend.text=element_text(size=12), 
+        axis.text=element_text(size=10),
+        strip.text.x = element_text(size=14)) +
+  guides(fill=guide_legend(title="Ny beläggning 2020-2021",
+                           title.position = "top",
+                           label.position = "bottom",
+                           nrow = 1),
+         color = "none") +
+grid::grid.draw(ShiftLegend(nybel_age_km))
+
+# Beläggning 2020-2022 per tillståndsklass och trafikmängd
+# English
+nybel_age_eng <- sweden22 %>% drop_na(trfkkls) %>%
+  dplyr::mutate(trfkkls = factor(trfkkls)) %>%
+  dplyr::mutate(trfkkls  = recode(trfkkls , 
+                                  "1" ="<250 vehicles/day", 
+                                  "2" = "250-499",
+                                  "3" = "500-999", 
+                                  "4" = "1000-1999", 
+                                  "5" = "2000-3999",
+                                  "6" = "4000-7999",
+                                  "7" = "8000-11999",
+                                  "8" = ">12000")) %>%
+  dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+  dplyr::mutate(PCIClass = recode(PCIClass, 
+                                  "5" ="Excellent", 
+                                  "4" = "Good", 
+                                  "3" = "Fair", 
+                                  "2" = "Poor", 
+                                  "1" = "Very poor")) %>%
+  dplyr::mutate(ny_bel = as.factor(ny_bel)) %>%
+  dplyr::mutate(ny_bel = recode(ny_bel, 
+                                  "Ja" ="Yes", 
+                                  "Nej" = "No")) %>%
+  group_by(trfkkls, PCIClass, ny_bel) %>%
+  summarise(grouplen = sum(längd)/1000) %>%
+  dplyr::mutate(percentage = grouplen/sum(grouplen)) %>%
+  ggplot(aes(x = PCIClass, y = percentage, 
+             fill = ny_bel, col = PCIClass)) +
+  geom_bar(position = 'stack', stat = 'identity', size = 1) +
+  facet_wrap(~trfkkls, scales='free') +
+  scale_color_manual(values=fill) +
+  scale_fill_manual(values = c("gray37","gray68")) +
+  labs(y="", x = "") +
+  theme_minimal() +
+  theme(legend.position="bottom",
+        legend.title=element_text(size=14),
+        legend.text=element_text(size=12), 
+        axis.text=element_text(size=10),
+        strip.text.x = element_text(size=14)) +
+  guides(fill=guide_legend(title="Maintenance treatment 2020-2021",
+                           title.position = "top",
+                           label.position = "bottom",
+                           nrow = 1),
+         color = "none") +
+  scale_y_continuous(labels = scales::percent) 
+grid::grid.draw(ShiftLegend(nybel_age_eng))
 
 # Täckning 2020-2022 per tillståndsklass och trafikmängd
 nybel_tackning <- sweden22 %>% dplyr::filter(ny_bel == "Ja") %>%
@@ -97,6 +188,57 @@ nybel_tackning <- sweden22 %>% dplyr::filter(ny_bel == "Ja") %>%
          color = "none") +
   scale_y_continuous(labels = scales::percent)
 grid::grid.draw(ShiftLegend(nybel_tackning))
+
+# Täckning 2020-2022 per tillståndsklass och trafikmängd
+# English
+nybel_tackning_eng <- sweden22 %>% dplyr::filter(ny_bel == "Ja") %>%
+  drop_na(trfkkls) %>%
+  drop_na(tackning_2) %>%
+  dplyr::mutate(trfkkls = factor(trfkkls)) %>%
+  dplyr::mutate(trfkkls  = recode(trfkkls , 
+                                  "1" ="<250 vehicles/day", 
+                                  "2" = "250-499",
+                                  "3" = "500-999", 
+                                  "4" = "1000-1999", 
+                                  "5" = "2000-3999",
+                                  "6" = "4000-7999",
+                                  "7" = "8000-11999",
+                                  "8" = ">12000")) %>%
+  dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+  dplyr::mutate(PCIClass = recode(PCIClass, 
+                                  "5" ="Excellent", 
+                                  "4" = "Good", 
+                                  "3" = "Fair", 
+                                  "2" = "Poor", 
+                                  "1" = "Very Poor")) %>%
+  dplyr::mutate(tackning_2 = factor(tackning_2)) %>%
+  dplyr::mutate(tackning_2 = recode(tackning_2, 
+                                  "Heltäckande" = "Full          ", 
+                                  "Fläckvis <20%" = "Partial <20%", 
+                                  "Fläckvis >20%" = "Partial >20%")) %>%
+  group_by(trfkkls, PCIClass, tackning_2) %>%
+  summarise(grouplen = sum(längd)/1000) %>%
+  dplyr::mutate(percentage = grouplen/sum(grouplen)) %>%
+  ggplot(aes(x = PCIClass, y = percentage, 
+             fill = tackning_2, col = PCIClass)) +
+  geom_bar(position = 'stack', stat = 'identity', size = 1) +
+  facet_wrap(~trfkkls, scales="free") +
+  scale_color_manual(values=fill) +
+  scale_fill_manual(values = c("gray88","gray68","gray38")) +
+  labs(y="", x = "") +
+  theme_minimal() +
+  theme(legend.position="bottom",
+        legend.title=element_text(size=12),
+        legend.text=element_text(size=12), 
+        axis.text=element_text(size=10),
+        strip.text.x = element_text(size=14)) +
+  guides(fill=guide_legend(title="Coverage maintenance treatments 2020-2021",
+                           title.position = "top",
+                           label.position = "bottom",
+                           nrow = 1),
+         color = "none") +
+  scale_y_continuous(labels = scales::percent)
+grid::grid.draw(ShiftLegend(nybel_tackning_eng))
 
 # Latest date for ny belaggning
 max(sweden22$beldat_22,na.rm=TRUE)
@@ -162,6 +304,43 @@ print(pci_dou_2022_vs_2020, n=Inf)
 
 head(sw22)
 
+# PCI 
+cond_eng <- sw22 %>%
+  dplyr::select(indxkls, PCIClass_22, längd) %>%
+  dplyr::rename(PCIClass_2022 = PCIClass_22) %>%
+  dplyr::rename(PCIClass_2020 = indxkls) %>%
+  tidyr::pivot_longer(cols = PCIClass_2020:PCIClass_2022, 
+                      names_to = "Year", 
+                      values_to = "PCIClass") %>%
+  dplyr::mutate(Year = factor(Year)) %>%
+  dplyr::mutate(Year = recode(Year, 
+                              "PCIClass_2020" = "2020", 
+                              "PCIClass_2022" = "2022")) %>% 
+  dplyr::mutate(PCIClass = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
+  dplyr::mutate(PCIClass = recode(PCIClass, 
+                                  "5" ="Excellent", 
+                                  "4" = "Good", 
+                                  "3" = "Fair", 
+                                  "2" = "Poor", 
+                                  "1" = "Very poor")) %>%
+  group_by(Year, PCIClass) %>%
+  summarise(grouplen = sum(längd)/1000) %>%
+  dplyr::mutate(percentage = grouplen/sum(grouplen)) %>%
+  ggplot(aes(x = Year, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,digits=0)," %"))) +
+  geom_bar(position = 'stack', stat = 'identity') +
+  scale_fill_manual(values=fill) +
+  labs(y="", x = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme(legend.position="bottom", legend.direction="vertical",
+        legend.title = element_blank(), 
+        legend.text=element_text(size=16), 
+        axis.text=element_text(size=14),
+        strip.text.x = element_text(size=16)) +
+  guides(fill=guide_legend(label.position = "bottom",
+                           nrow = 1)) +
+  geom_text(size = 5, position = position_stack(vjust = 0.5))
+print(cond_eng)
+
 # PCI barchart region
 cond_p <- sw22 %>%
   dplyr::select(region, indxkls, PCIClass_22, längd) %>%
@@ -204,6 +383,56 @@ cond_p <- sw22 %>%
   geom_text(size = 3, position = position_stack(vjust = 0.5))
 
 print(cond_p)
+
+# PCI barchart region
+cond_p_eng <- sw22 %>%
+  dplyr::select(region, indxkls, PCIClass_22, längd) %>%
+  dplyr::rename(PCIClass_2022 = PCIClass_22) %>%
+  dplyr::rename(PCIClass_2020 = indxkls) %>%
+  tidyr::pivot_longer(cols = PCIClass_2020:PCIClass_2022, 
+                      names_to = "Year", 
+                      values_to = "PCIClass") %>%
+  dplyr::mutate(Year = factor(Year)) %>%
+  dplyr::mutate(Year = recode(Year, 
+                              "PCIClass_2020" = "2020", 
+                              "PCIClass_2022" = "2022")) %>% 
+  dplyr::mutate(Region = ChangeRegion(region)) %>%
+  dplyr::mutate(Region = factor(Region)) %>%
+  dplyr::mutate(Region = recode(Region, Ost="Öst", Vast="Väst")) %>%
+  dplyr::mutate(Region = factor(Region, levels = c("Mitt","Nord","Sthlm","Syd","Väst","Öst"))) %>%
+  dplyr::mutate(Region = recode(Region, 
+                                  "Mitt" ="Middle", 
+                                  "Nord" = "North", 
+                                  "Sthlm" = "Sthlm", 
+                                  "Syd" = "South", 
+                                  "Väst" = "West",
+                                  "Öst" = "East")) %>%
+  dplyr::mutate(PCIClass = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
+  dplyr::mutate(PCIClass = recode(PCIClass, 
+                                  "5" ="Excellent", 
+                                  "4" = "Good", 
+                                  "3" = "Fair", 
+                                  "2" = "Poor", 
+                                  "1" = "Very poor")) %>%
+  group_by(Region, Year, PCIClass) %>%
+  summarise(grouplen = sum(längd)/1000) %>%
+  dplyr::mutate(percentage = grouplen/sum(grouplen)) %>%
+  ggplot(aes(x = Year, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,digits=0)," %"))) +
+  geom_bar(position = 'stack', stat = 'identity') +
+  facet_wrap(~Region, nrow = 1) +
+  scale_fill_manual(values=fill) +
+  labs(y="", x = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme(legend.position="bottom", legend.direction="vertical",
+        legend.title = element_blank(), 
+        legend.text=element_text(size=16), 
+        axis.text=element_text(size=14),
+        strip.text.x = element_text(size=16)) +
+  guides(fill=guide_legend(label.position = "bottom",
+                           nrow = 1)) +
+  geom_text(size = 3, position = position_stack(vjust = 0.5))
+
+print(cond_p_eng)
 
 # PCI barchart vägtyp
 cond_v <- sw22 %>%
@@ -252,6 +481,49 @@ cond_v <- sw22 %>%
   geom_text(size = 3, position = position_stack(vjust = 0.5))
 
 print(cond_v)
+
+# PCI barchart vägtyp
+cond_v_eng <- sw22 %>%
+  dplyr::select(RoadType, indxkls, PCIClass_22, längd) %>%
+  dplyr::rename(PCIClass_2022 = PCIClass_22) %>%
+  dplyr::rename(PCIClass_2020 = indxkls) %>%
+  tidyr::pivot_longer(cols = PCIClass_2020:PCIClass_2022, 
+                      names_to = "Year", 
+                      values_to = "PCIClass") %>%
+  dplyr::mutate(Year = factor(Year)) %>%
+  dplyr::mutate(Year = recode(Year, 
+                              "PCIClass_2020" = "2020", 
+                              "PCIClass_2022" = "2022")) %>% 
+  drop_na(RoadType) %>%
+  dplyr::mutate(RoadType = as.factor(RoadType)) %>%
+  dplyr::mutate(PCIClass = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
+  dplyr::mutate(PCIClass = recode(PCIClass, 
+                                  "5" ="Excellent", 
+                                  "4" = "Good", 
+                                  "3" = "Fair", 
+                                  "2" = "Poor", 
+                                  "1" = "Very poor")) %>%
+  group_by(RoadType, Year, PCIClass) %>%
+  summarise(grouplen = sum(längd)/1000) %>%
+  mutate(percentage = grouplen/sum(grouplen)) %>%
+  mutate(percentage = ifelse(RoadType == "2+1 road" & PCIClass == "Very poor" & Year == 2022, 
+                             0.0655, percentage)) %>%
+  ggplot(aes(x = Year, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,0)," %"))) +
+  geom_bar(position = 'fill', stat = 'identity') +
+  facet_wrap(~ RoadType, nrow = 1) +
+  scale_fill_manual(values=fill) +
+  labs(y="", x = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme(legend.position="bottom", legend.direction="vertical",
+        legend.title = element_blank(), 
+        legend.text=element_text(size=16), 
+        axis.text=element_text(size=14),
+        strip.text.x = element_text(size=16)) +
+  guides(fill=guide_legend(label.position = "bottom",
+                           nrow = 1)) +
+  geom_text(size = 3, position = position_stack(vjust = 0.5))
+
+print(cond_v_eng)
 
 ###############################################################
 # Länsvis
