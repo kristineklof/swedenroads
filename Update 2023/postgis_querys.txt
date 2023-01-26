@@ -1,0 +1,167 @@
+##########################################
+# Union of belaggning and matdata
+
+CREATE TABLE sweden_belaggning_2023 AS 
+SELECT * FROM "blekinge-belaggning-senaste-2023" 
+UNION SELECT * FROM "dalarna-belaggning-senaste-2023" 
+UNION SELECT * FROM "gavleborg-belaggning-senaste-2023" 
+UNION SELECT * FROM "gotland-belaggning-senaste-2023" 
+UNION SELECT * FROM "halland-belaggning-senaste-2023" 
+UNION SELECT * FROM "jamtland-belaggning-senaste-2023" 
+UNION SELECT * FROM "jonkoping-belaggning-senaste-2023" 
+UNION SELECT * FROM "kalmar-belaggning-senaste-2023" 
+UNION SELECT * FROM "kronoberg-belaggning-senaste-2023" 
+UNION SELECT * FROM "norrbotten-belaggning-senaste-2023" 
+UNION SELECT * FROM "orebro-belaggning-senaste-2023" 
+UNION SELECT * FROM "ostergotland-belaggning-senaste-2023" 
+UNION SELECT * FROM "skane-belaggning-senaste-2023" 
+UNION SELECT * FROM "sodermanland-belaggning-senaste-2023" 
+UNION SELECT * FROM "stockholm-belaggning-senaste-2023" 
+UNION SELECT * FROM "uppsala-belaggning-senaste-2023" 
+UNION SELECT * FROM "varmland-belaggning-senaste-2023" 
+UNION SELECT * FROM "vasterbotten-belaggning-senaste-2023" 
+UNION SELECT * FROM "vasternorrland-belaggning-senaste-2023" 
+UNION SELECT * FROM "vastmanland-belaggning-senaste-2023" 
+UNION SELECT * FROM "vastra-gotaland-belaggning-senaste-2023"
+
+CREATE INDEX bel23_idx ON sweden_belaggning_2023 USING GIST (geom);
+
+CREATE TABLE sweden_matdata_2023 AS 
+SELECT * FROM "blekinge-matdata-senaste-2023" 
+UNION SELECT * FROM "dalarna-matdata-senaste-2023" 
+UNION SELECT * FROM "gavleborg-matdata-senaste-2023" 
+UNION SELECT * FROM "gotland-matdata-senaste-2023" 
+UNION SELECT * FROM "halland-matdata-senaste-2023" 
+UNION SELECT * FROM "jamtland-matdata-senaste-2023" 
+UNION SELECT * FROM "jonkoping-matdata-senaste-2023" 
+UNION SELECT * FROM "kalmar-matdata-senaste-2023" 
+UNION SELECT * FROM "kronoberg-matdata-senaste-2023" 
+UNION SELECT * FROM "norrbotten-matdata-senaste-2023" 
+UNION SELECT * FROM "orebro-matdata-senaste-2023" 
+UNION SELECT * FROM "ostergotland-matdata-senaste-2023" 
+UNION SELECT * FROM "skane-matdata-senaste-2023" 
+UNION SELECT * FROM "sodermanland-matdata-senaste-2023" 
+UNION SELECT * FROM "stockholm-matdata-senaste-2023" 
+UNION SELECT * FROM "uppsala-matdata-senaste-2023" 
+UNION SELECT * FROM "varmland-matdata-senaste-2023" 
+UNION SELECT * FROM "vasterbotten-matdata-senaste-2023" 
+UNION SELECT * FROM "vasternorrland-matdata-senaste-2023" 
+UNION SELECT * FROM "vastmanland-matdata-senaste-2023" 
+UNION SELECT * FROM "vastra-gotaland-matdata-senaste-2023"
+
+CREATE INDEX mat23_idx ON sweden_matdata_2023 USING GIST (geom);
+
+##########################################
+# Add belaggning and matdata
+
+ALTER TABLE "swedenroads_2023"
+ADD COLUMN sparm17_23 NUMERIC,
+ADD COLUMN sparm15_23 NUMERIC,
+ADD COLUMN irih_23 NUMERIC,
+ADD COLUMN iriv_23 NUMERIC,
+ADD COLUMN kantdjup_23 NUMERIC,
+ADD COLUMN matdatum_23 VARCHAR;
+
+UPDATE swedenroads_2023 AS sw
+SET sparm17_23 = sq.sparm17, 
+	sparm15_23 = sq.sparm15,
+	irih_23 = sq.irih,
+	iriv_23 = sq.iriv,
+	kantdjup_23 = sq.kantdjup
+FROM  (SELECT nb.id, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irihoger) AS irih,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irivanster) AS iriv,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+	FROM "swedenroads_2023" AS nb
+	LEFT JOIN "sweden_matdata_2023" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.id) AS sq
+WHERE  sw.id=sq.id;
+
+UPDATE swedenroads_2023 AS sw
+SET matdatum_23 = sq.matdatum 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.matdatum AS matdatum,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS mat_intersect_len
+	FROM "swedenroads_2023" AS nv
+	LEFT JOIN "sweden_matdata_2023" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, mat_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+
+ALTER TABLE "swedenroads_2023"
+ADD COLUMN beldat_23 VARCHAR,
+ADD COLUMN beltyp_23 VARCHAR,
+ADD COLUMN tillvm_23 VARCHAR,
+ADD COLUMN utlm_23 VARCHAR,
+ADD COLUMN tackning_23 VARCHAR,
+ADD COLUMN korfalt_23 NUMERIC;
+
+UPDATE swedenroads_2023 AS sw
+SET beldat_23 = sq.beldat, 
+	beltyp_23 = sq.beltyp,
+	tillvm_23 = sq.tillvm,
+	utlm_23 = sq.utlm,
+	korfalt_23 = sq.korfalt,
+	tackning_23 = sq.tackning
+FROM  (SELECT DISTINCT ON (nv.id)
+	    nv.id,
+		b_all.belaggningsdatum AS beldat,
+		b_all.belaggningstyp AS beltyp, 
+		b_all.tillverkningsmetod AS tillvm,
+		b_all.utlaggningsmetod AS utlm,
+	 	b_all.korfalt AS korfalt,
+		b_all.tackning AS tackning, 
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)) as bel_intersect_len
+	FROM "swedenroads_2023" AS nv
+	LEFT JOIN "sweden_belaggning_2023" AS b_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)
+	ORDER BY nv.id, bel_intersect_len DESC, b_all.korfalt
+) AS sq
+WHERE  sw.id=sq.id;
+
+#############################################
+# Add new NVDB data to swedenroads
+
+ALTER TABLE "swedenroads_2023"
+ADD COLUMN barig_23 NUMERIC,
+ADD COLUMN dou_23 NUMERIC,
+ADD COLUMN adt_23 NUMERIC,
+ADD COLUMN adt_tung_23 NUMERIC,
+ADD COLUMN adt_mat_23 NUMERIC,
+ADD COLUMN hast_23 NUMERIC,
+ADD COLUMN vagtyp_23 NUMERIC,
+ADD COLUMN vagbredd_23 NUMERIC;
+
+UPDATE swedenroads_2023 AS sw
+SET barig_23 = sq.barig,
+    adt_23 = sq.adt,
+    adt_tung_23 = sq.adt_t,
+    adt_mat_23 = sq.adt_mat,
+    hast_23 = sq.hast,
+    dou_23 = sq.dou,
+    vagtyp_23 = sq.vagtyp,
+    vagbredd_23 = sq.vagbredd 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.barig_64 AS barig,
+	nm.f_hogst_225 AS hast,
+	nm.matar_121 AS adt_mat,
+	nm.adt_l_115 AS adt_t,
+	nm.adt_f_117 AS adt,
+	nm.under_397 AS dou,
+	nm.bredd_156 AS vagbredd,
+	nm.vagty_41 AS vagtyp,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS nvdb_intersect_len
+	FROM "swedenroads_2023" AS nv
+	LEFT JOIN "nvdb_homo_2023" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, nvdb_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+
+

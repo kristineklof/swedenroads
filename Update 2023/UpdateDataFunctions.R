@@ -21,6 +21,27 @@ itShouldChangeValuesOfVariableVagtyp <- function(){
 
 itShouldChangeValuesOfVariableVagtyp()
 
+AddRegion2023 <- function(län_nr){
+  region <- ifelse(län_nr == 24 | län_nr == 25, "Nord", NA)
+  region <- ifelse(län_nr == 20 | län_nr == 21 | län_nr == 22 | län_nr == 23, "Mitt", region)
+  region <- ifelse(län_nr == 1, "Sthlm", region)
+  region <- ifelse(län_nr == 9, "Gotland", region)
+  region <- ifelse(län_nr == 3 | län_nr == 4 | län_nr == 5 | län_nr == 18 | län_nr == 19, "Ost", region)
+  region <- ifelse(län_nr == 13 | län_nr == 14 | län_nr == 17, "Vast", region)
+  region <- ifelse(län_nr == 6 | län_nr == 7 | län_nr == 8 | län_nr == 10 | län_nr == 12, "Syd", region)
+  
+  return(region)
+}
+
+itShouldAddRegion <- function(){
+  län_nr <- c(3,4,1,25,13,7)
+  res <- AddRegion2023(län_nr)
+  gold <- c("Ost",   "Ost",   "Sthlm", "Nord",  "Vast",  "Syd")
+  stopifnot(res == gold)
+}
+
+itShouldAddRegion()
+
 ChangeRegion <- function(region){
   Region <- if_else(region == 1, "Mitt",
                     if_else(region == 2, "Nord",
@@ -47,6 +68,7 @@ UpdateMatdatum <- function(mätdatm, new_matdatum){
 }
 
 UpdateBelaggningsdatum <- function(blggnngsd, new_beldat){
+  new_beldat <- as.Date(new_beldat)
   beldat <- if_else_na(blggnngsd != new_beldat | (is.na(blggnngsd) & !is.na(new_beldat)), 
                        new_beldat, blggnngsd)
 
@@ -54,12 +76,12 @@ UpdateBelaggningsdatum <- function(blggnngsd, new_beldat){
 }
 
 itShouldUpdateBelaggningsdatum <- function(){
-  dat <- data.frame(blggnngsd = as.Date(c(NA,"2018-05-30","2007-06-25","2017-06-25")),
-                    beldat_22 = as.Date(c("2018-11-30","2020-08-25","2007-06-25","2007-06-25")))
+  dat <- data.frame(blggnngsd = as.Date(c(NA,"2018-05-30","2007-06-25","2017-06-25","2017-07-25")),
+                    beldat_22 = c("2018-11-30","2020-08-25","2007-06-25","2007-06-25",NA))
   
   res <- dat %>% 
     dplyr::mutate(blggnngsd = UpdateBelaggningsdatum(blggnngsd, beldat_22))
-  gold <- as.Date(c("2018-11-30","2020-08-25","2007-06-25","2007-06-25"))
+  gold <- as.Date(c("2018-11-30","2020-08-25","2007-06-25","2007-06-25","2017-07-25"))
   
   stopifnot(res$blggnngsd == gold)
 }
@@ -87,17 +109,17 @@ itShouldUpdateSpårdjup <- function(){
 
 itShouldUpdateSpårdjup()
 
-TrafficClass2022 <- function(dat){
+TrafficClass2023 <- function(dat){
   setDT(dat)
   # Add Traffic class variable
-  dat[, trfkkls := ifelse(Ådt_frd <250, 1, NA)]
-  dat[, trfkkls := ifelse(Ådt_frd >=250, 2, trfkkls)]
-  dat[, trfkkls := ifelse(Ådt_frd >499, 3, trfkkls)]
-  dat[, trfkkls := ifelse(Ådt_frd >999, 4, trfkkls)]
-  dat[, trfkkls := ifelse(Ådt_frd >1999, 5, trfkkls)]
-  dat[, trfkkls := ifelse(Ådt_frd >3999, 6, trfkkls)]
-  dat[, trfkkls := ifelse(Ådt_frd >7999, 7, trfkkls)]
-  dat[, trfkkls := ifelse(Ådt_frd >11999, 8, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd <250, 1, NA)]
+  dat[, trfkkls := ifelse(ådt_frd >=250, 2, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >499, 3, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >999, 4, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >1999, 5, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >3999, 6, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >7999, 7, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >11999, 8, trfkkls)]
   
   return(dat)
 }
@@ -141,68 +163,68 @@ ChangeTackningNumerisk <- function(tackning){
 
 ConditionComparisonBetweenYears <- function(dat1,dat2,grp,grp_name,single=FALSE){
   if(single){
-    pci_2020 <- QualitativeStatsSingleGroup(dat1, quo(indxkls), quo(längd))
-    pci_2020 <- pci_2020 %>% 
+    pci_old <- QualitativeStatsSingleGroup(dat1, quo(indxkls), quo(längd))
+    pci_old <- pci_old %>% 
       dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
       dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
-      dplyr::mutate(grouplen20 = round(grouplen,0)) %>%
-      dplyr::mutate(prop20 = prop*100) %>%
-      dplyr::mutate(prop20 = round(prop20,1)) %>%
+      dplyr::mutate(grouplen_old = round(grouplen,0)) %>%
+      dplyr::mutate(prop_old = prop*100) %>%
+      dplyr::mutate(prop_old = round(prop_old,1)) %>%
       dplyr::select(-c(prop, grouplen,indxkls))
     
-    pci_2022 <- QualitativeStatsSingleGroup(dat2, quo(PCIClass_22), quo(längd))
-    pci_2022 <- pci_2022 %>% 
-      dplyr::mutate(PCIClass = factor(PCIClass_22, levels = c("5","4","3","2","1"))) %>%
+    pci_new <- QualitativeStatsSingleGroup(dat2, quo(PCIClass_23), quo(längd))
+    pci_new <- pci_new %>% 
+      dplyr::mutate(PCIClass = factor(PCIClass_23, levels = c("5","4","3","2","1"))) %>%
       dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
-      dplyr::mutate(grouplen22 = round(grouplen,0)) %>%
-      dplyr::mutate(prop22 = prop*100) %>%
-      dplyr::mutate(prop22 = round(prop22,1)) %>%
-      dplyr::select(-c(prop, grouplen,PCIClass_22))
+      dplyr::mutate(grouplen_new = round(grouplen,0)) %>%
+      dplyr::mutate(prop_new = prop*100) %>%
+      dplyr::mutate(prop_new = round(prop_new,1)) %>%
+      dplyr::select(-c(prop, grouplen,PCIClass_23))
     
-    pci_2022_vs_2020 <- dplyr::left_join(pci_2020, pci_2022, by=c("PCIClass"))
-    pci_2022_vs_2020 <- na.omit(pci_2022_vs_2020)
+    pci_old_vs_new <- dplyr::left_join(pci_old, pci_new, by=c("PCIClass"))
+    pci_old_vs_new <- na.omit(pci_old_vs_new)
   } else {
-    pci_2020 <- QualitativeStatsDoubleGroup(dat1, grp, quo(indxkls), quo(längd))
-    pci_2020 <- pci_2020 %>% 
+    pci_old <- QualitativeStatsDoubleGroup(dat1, grp, quo(indxkls), quo(längd))
+    pci_old <- pci_old %>% 
       dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
       dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
-      dplyr::mutate(grouplen20 = round(grouplen,0)) %>%
-      dplyr::mutate(prop20 = prop*100) %>%
-      dplyr::mutate(prop20 = round(prop20,1)) %>%
+      dplyr::mutate(grouplen_old = round(grouplen,0)) %>%
+      dplyr::mutate(prop_old = prop*100) %>%
+      dplyr::mutate(prop_old = round(prop_old,1)) %>%
       dplyr::select(-c(prop, grouplen,indxkls))
     
-    pci_2022 <- QualitativeStatsDoubleGroup(dat2, grp, quo(PCIClass_22), quo(längd))
-    pci_2022 <- pci_2022 %>% 
-      dplyr::mutate(PCIClass = factor(PCIClass_22, levels = c("5","4","3","2","1"))) %>%
+    pci_new <- QualitativeStatsDoubleGroup(dat2, grp, quo(PCIClass_23), quo(längd))
+    pci_new <- pci_new %>% 
+      dplyr::mutate(PCIClass = factor(PCIClass_23, levels = c("5","4","3","2","1"))) %>%
       dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
-      dplyr::mutate(grouplen22 = round(grouplen,0)) %>%
-      dplyr::mutate(prop22 = prop*100) %>%
-      dplyr::mutate(prop22 = round(prop22,1)) %>%
-      dplyr::select(-c(prop, grouplen,PCIClass_22))
+      dplyr::mutate(grouplen_new = round(grouplen,0)) %>%
+      dplyr::mutate(prop_new = prop*100) %>%
+      dplyr::mutate(prop_new = round(prop_new,1)) %>%
+      dplyr::select(-c(prop, grouplen,PCIClass_23))
     
-    pci_2022_vs_2020 <- dplyr::left_join(pci_2020, pci_2022, by=c(grp_name, "PCIClass"))
-    pci_2022_vs_2020 <- na.omit(pci_2022_vs_2020)
+    pci_old_vs_new <- dplyr::left_join(pci_old, pci_new, by=c(grp_name, "PCIClass"))
+    pci_old_vs_new <- na.omit(pci_old_vs_new)
   }
 
-  return(pci_2022_vs_2020)
+  return(pci_old_vs_new)
 }
 
 ComparisonBetweenYears <- function(dat1,dat2,grp,grp_name){
-  var_old <- QualitativeStatsSingleGroup(dat1, grp, quo(längd))
-  var_old <- var_old %>% 
-    dplyr::mutate(grouplen_old = round(grouplen,0)) %>%
-    dplyr::mutate(prop_old = prop*100) %>%
-    dplyr::mutate(prop_old = round(prop_old,1)) %>%
+  var_2020 <- QualitativeStatsSingleGroup(dat1, grp, quo(längd))
+  var_2020 <- var_2020 %>% 
+    dplyr::mutate(grouplen20 = round(grouplen,0)) %>%
+    dplyr::mutate(prop20 = prop*100) %>%
+    dplyr::mutate(prop20 = round(prop20,1)) %>%
     dplyr::select(-c(prop, grouplen))
   
-  var_new <- QualitativeStatsSingleGroup(dat2, grp, quo(längd))
-  var_new <- var_new %>% 
-    dplyr::mutate(grouplen_new = round(grouplen,0)) %>%
-    dplyr::mutate(prop_new = prop*100) %>%
-    dplyr::mutate(prop_new = round(prop_new,1)) %>%
+  var_2022 <- QualitativeStatsSingleGroup(dat2, grp, quo(längd))
+  var_2022 <- var_2022 %>% 
+    dplyr::mutate(grouplen22 = round(grouplen,0)) %>%
+    dplyr::mutate(prop22 = prop*100) %>%
+    dplyr::mutate(prop22 = round(prop22,1)) %>%
     dplyr::select(-c(prop, grouplen))
   
-  var_old_vs_new <- dplyr::left_join(var_old, var_new, by=c(grp_name))
+  var_2022_vs_2020 <- dplyr::left_join(var_2020, var_2022, by=c(grp_name))
 
-  return(var_old_vs_new)
+  return(var_2022_vs_2020)
 }
