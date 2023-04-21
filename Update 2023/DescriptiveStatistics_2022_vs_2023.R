@@ -381,17 +381,25 @@ cond <- sw23_comp %>%
   geom_text(size = 5, position = position_stack(vjust = 0.5))
 print(cond)
 
+head(cond)
+# Export to Excel
+tillstand <- createWorkbook()
+addWorksheet(tillstand, "Tillstånd 2020-2022")
+writeData(tillstand, sheet = 1, cond)
+#Save Workbook
+saveWorkbook(tillstand, "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Transportföretagen/Uppdatering 2023/Skickat/Tillstånd_2020_2021_2022.xlsx", overwrite = TRUE)
+
+
 # PCI barchart region
-cond_p <- sw23 %>%
-  dplyr::select(region, indxkls, PCIClass_23, längd) %>%
+cond_p <- sw23_comp %>%
+  dplyr::select(PCIClass_2020, PCIClass_23, region, längd) %>%
   dplyr::rename(PCIClass_2022 = PCIClass_23) %>%
-  dplyr::rename(PCIClass_2021 = indxkls) %>%
-  tidyr::pivot_longer(cols = PCIClass_2022:PCIClass_2021, 
+  tidyr::pivot_longer(cols = PCIClass_2022:PCIClass_2020, 
                names_to = "Year", 
                values_to = "PCIClass") %>%
   dplyr::mutate(Year = factor(Year)) %>%
   dplyr::mutate(Year = recode(Year, 
-                                  "PCIClass_2021" = "2021", 
+                                  "PCIClass_2020" = "2020", 
                                   "PCIClass_2022" = "2022")) %>% 
   dplyr::mutate(Region = region) %>%
   dplyr::mutate(Region = factor(Region)) %>%
@@ -475,16 +483,15 @@ cond_p_eng <- sw23 %>%
 print(cond_p_eng)
 
 # PCI barchart vägtyp
-cond_v <- sw23 %>%
-  dplyr::select(RoadType, indxkls, PCIClass_23, längd) %>%
+cond_v <- sw23_comp %>%
+  dplyr::select(PCIClass_2020, PCIClass_23, RoadType, längd) %>%
   dplyr::rename(PCIClass_2022 = PCIClass_23) %>%
-  dplyr::rename(PCIClass_2021 = indxkls) %>%
-  tidyr::pivot_longer(cols = PCIClass_2021:PCIClass_2022, 
+  tidyr::pivot_longer(cols = PCIClass_2022:PCIClass_2020, 
                       names_to = "Year", 
                       values_to = "PCIClass") %>%
   dplyr::mutate(Year = factor(Year)) %>%
   dplyr::mutate(Year = recode(Year, 
-                              "PCIClass_2021" = "2021", 
+                              "PCIClass_2020" = "2020", 
                               "PCIClass_2022" = "2022")) %>% 
   drop_na(RoadType) %>%
   dplyr::mutate(RoadType = as.factor(RoadType)) %>%
@@ -503,8 +510,8 @@ cond_v <- sw23 %>%
   group_by(RoadType, Year, PCIClass) %>%
   summarise(grouplen = sum(längd)/1000) %>%
   mutate(percentage = grouplen/sum(grouplen)) %>%
-  mutate(percentage = ifelse(RoadType == "2+1 väg" & PCIClass == "Mycket dålig" & Year == 2022, 
-                             0.0655, percentage)) %>%
+  #mutate(percentage = ifelse(RoadType == "2+1 väg" & PCIClass == "Mycket dålig" & Year == 2022, 
+  #                           0.0655, percentage)) %>%
   ggplot(aes(x = Year, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,0)," %"))) +
   geom_bar(position = 'fill', stat = 'identity') +
   facet_wrap(~ RoadType, nrow = 1) +
