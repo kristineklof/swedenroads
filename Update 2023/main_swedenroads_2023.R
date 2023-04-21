@@ -42,6 +42,7 @@ lan_surv_dt <- readRDS(paste0(datapath,"lan_surv_dt_matning.rds"))
 # Import 2023 data (processed in PostGIS and QGIS)
 swedenroads_2023 <- st_read(paste0(datapath,"2023/swedenroads_2023_database_version.shp"))
 swedenroads_2020 <- st_read(paste0(datapath,"swedenroads_2020_v4.shp"))
+sw23_geo <- swedenroads_2020[,c("ID")]
 
 # Drop geometry for analytical purposes
 sweden23 <- st_drop_geometry(swedenroads_2023)
@@ -81,4 +82,3 @@ str(sw23)
 # Beräkna PCI
 
 sw23 <- CalculatePCI23(sw23)
-

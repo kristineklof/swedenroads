@@ -21,6 +21,23 @@ itShouldChangeValuesOfVariableVagtyp <- function(){
 
 itShouldChangeValuesOfVariableVagtyp()
 
+VagtypNumTillText <- function(vagtyp){
+  vagtyp <- if_else_na(vagtyp == 1, "2+1 väg", 
+                       if_else_na(vagtyp == 2, "4-fälts väg", 
+                                  if_else_na(vagtyp == 3, "Motorväg", 
+                                             if_else_na(vagtyp == 4, "Vanlig väg",
+                                                        if_else_na(vagtyp == 5, "Motortrafikled",NA)))))
+  return(vagtyp)
+}
+
+VagkatNumTillText <- function(vagkat){
+  vagkat <- if_else_na(vagkat == 1, "Europaväg", 
+                       if_else_na(vagkat == 2, "Riksväg", 
+                                  if_else_na(vagkat == 3, "Primär länsväg", 
+                                             if_else_na(vagkat == 4, "Sekundär länsväg",NA))))
+  return(vagkat)
+}
+
 AddRegion2023 <- function(län_nr){
   region <- ifelse(län_nr == 24 | län_nr == 25, "Nord", NA)
   region <- ifelse(län_nr == 20 | län_nr == 21 | län_nr == 22 | län_nr == 23, "Mitt", region)

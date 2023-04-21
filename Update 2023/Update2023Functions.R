@@ -40,7 +40,9 @@ NewLifetime23 <- function(sw_yy, nvdb_2020, lan_surv_dt){
     dplyr::mutate(ålder = CalculateAge(blggnngsd,"2022-01-01"))
   
   # Uppdatera mätningar
-  sw_yy <- sw_yy %>% dplyr::mutate(mätdatm = UpdateMatdatum(mätdatm, matdatum_2)) %>%
+  sw_yy <- sw_yy %>% 
+    dplyr::mutate(matdatum_2 = as.Date(matdatum_2)) %>%
+    dplyr::mutate(mätdatm = UpdateMatdatum(mätdatm, matdatum_2)) %>%
     dplyr::mutate(mätdatm = as.Date(as.numeric(mätdatm), origin = "1970-01-01")) %>%
     dplyr::mutate(iri = if_else_na(!is.na(irih_23), irih_23, iri)) %>%
     dplyr::mutate(spårdjp = UpdateSpårdjup(spårdjp, sparm17_23, sparm15_23, vägbrdd))
@@ -113,7 +115,7 @@ CalculatePCI23 <- function(sw_yy){
     dplyr::rename(TrtmntD = blggnngsd) %>%
     dplyr::rename(MsrmntD = mätdatm)
   
-  pci_data <- CreatePCI(pci_data, datum = "2023-01-01")
+  pci_data <- CreatePCI(pci_data, datum = "2022-01-01")
   pci_data <- PCIClass(pci_data)
   
   pci_data <- pci_data %>%
