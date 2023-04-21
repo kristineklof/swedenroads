@@ -13,6 +13,10 @@ head(pci2030)
 names(pci2030) <- c("Objectd","Year","PCI")
 setDT(pci2030)
 
+#Mean PCI 2031
+means <- pci2030 %>% group_by(Year) %>%
+  summarize(mean_pci = mean(PCI))
+
 #names(pci2030_2020) <- c("Objectd","Year","PCI")
 #setDT(pci2030_2020)
 

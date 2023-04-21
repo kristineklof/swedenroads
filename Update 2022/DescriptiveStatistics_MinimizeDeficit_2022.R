@@ -11,6 +11,10 @@ pci2030_min <- fread("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Sweden
 names(pci2030_min) <- c("Objectd","Year","PCI")
 setDT(pci2030_min)
 
+#Mean PCI 2031
+means <- pci2030_min %>% group_by(Year) %>%
+  summarize(mean_pci = mean(PCI))
+
 swedt_PCI <- PCIClass(swedt_PCI)
 swedt_PCI[, PCIClass := as.factor(PCIClass)]
 str(swedt_PCI)

@@ -12,6 +12,10 @@ head(pci2030_mcur)
 names(pci2030_mcur) <- c("Objectd","Year","PCI")
 setDT(pci2030_mcur)
 
+#Mean PCIs
+means <- pci2030_mcur %>% group_by(Year) %>%
+  summarize(mean_pci = mean(PCI))
+
 swedt_PCI <- PCIClass(swedt_PCI)
 swedt_PCI[, PCIClass := as.factor(PCIClass)]
 str(swedt_PCI)
