@@ -12,7 +12,7 @@ sw23_geo <- swedenroads_2023[,c("id")]
 
 # Join with geometry
 sw23_full_geo <- dplyr::left_join(sw23,sw23_geo, by=c("id" = "id"))
-st_write(sw23_full_geo, paste0(datapath,"2023/sweden_2023_validation_file.shp"))
+st_write(sw23_full_geo, paste0(datapath,"2023/sweden_2023_validation_file.shp"), append=FALSE)
 head(sw23_full_geo)
 
 # Import analysis version from 2020
@@ -111,63 +111,63 @@ st_write(sweden_2023_dot, paste0(datapath,"2023/DOT/sweden_2023_dot_20230126.shp
 ##########################################################
 # Output till Anders/swedenroads/våravägar
 swroads_cols <- c("id", "brghtsk", "hastght", "dou2017",
-                  "Ådt_frd", "Ådt_tng", "Ådt_mtr", "vägbrdd",
+                  "ådt_frd", "ådt_tng", "ådt_mtr", "vägbrdd",
                   "vägnmmr","vägktgr", "vägtyp", "längd",  
                   "blggnngsd","PavementType", "blggnngst", "tackning",
                   "spårdjp",  "iri","mätdatm","IRI_maint", "SP_maint",
                    "län_nr", "kmmn_nr",
-                  "Ålder","PredictedServiceLife", "RemainingServiceLife",
-                  "PCI_22", "PCIClass_22")
-swedenroads_2022 <-  sw22[,..swroads_cols]
-swedenroads_2022 <- swedenroads_2022 %>%
+                  "ålder","PredictedServiceLife", "RemainingServiceLife",
+                  "PCI_23", "PCIClass_23")
+swedenroads_2023 <-  sw23[,..swroads_cols]
+swedenroads_2023 <- swedenroads_2023 %>%
   dplyr::mutate(PavementType = ChangeBeltypNumerisk(PavementType)) %>%
   dplyr::mutate(blggnngst = if_else(!is.na(PavementType), PavementType, blggnngst)) %>%
   dplyr::mutate(tackning = ChangeTackningNumerisk(tackning))
 
 # Add classes
-pci2031_cur <- pci2030 %>% dplyr::filter(Year == 2031) %>%
+pci2032_cur <- pci2032 %>% dplyr::filter(Year == 2032) %>%
   dplyr::select(Objectd,PCIClass)
-names(pci2031_cur) <- c("id","IKls_1")
+names(pci2032_cur) <- c("id","IKls_1")
 
-pci2031_mcur <- pci2030_mcur %>% dplyr::filter(Year == 2031) %>%
+pci2032_mcur <- pci2032_mcur %>% dplyr::filter(Year == 2032) %>%
   dplyr::select(Objectd,PCIClass)
-names(pci2031_mcur) <- c("id","IKls_2")
+names(pci2032_mcur) <- c("id","IKls_2")
 
-pci2031_min <- pci2030_min %>% dplyr::filter(Year == 2031) %>%
+pci2032_min <- pci2032_min %>% dplyr::filter(Year == 2032) %>%
   dplyr::select(Objectd,PCIClass)
-names(pci2031_min) <- c("id","IKls_3")
+names(pci2032_min) <- c("id","IKls_3")
 
-swedenroads_2022 <- dplyr::left_join(swedenroads_2022, pci2031_cur, by = c("id"))
-swedenroads_2022 <- dplyr::left_join(swedenroads_2022, pci2031_mcur, by = c("id"))
-swedenroads_2022 <- dplyr::left_join(swedenroads_2022, pci2031_min, by = c("id"))
+swedenroads_2023 <- dplyr::left_join(swedenroads_2023, pci2032_cur, by = c("id"))
+swedenroads_2023 <- dplyr::left_join(swedenroads_2023, pci2032_mcur, by = c("id"))
+swedenroads_2023 <- dplyr::left_join(swedenroads_2023, pci2032_min, by = c("id"))
 
 swroads_cols2 <- c("id", "brghtsk", "hastght", "dou2017",
-                  "Ådt_frd", "Ådt_tng", "Ådt_mtr", "vägbrdd",
+                  "ådt_frd", "ådt_tng", "ådt_mtr", "vägbrdd",
                   "vägnmmr","vägktgr", "vägtyp", "längd",  
                   "blggnngsd", "blggnngst", "tackning",
                   "spårdjp",  "iri","mätdatm","IRI_maint", "SP_maint",
                   "län_nr", "kmmn_nr",
-                  "Ålder","PredictedServiceLife", "RemainingServiceLife",
-                  "PCI_22", "PCIClass_22","IKls_1","IKls_2","IKls_3")
-swedenroads_2022 <-  swedenroads_2022[,..swroads_cols2]
-names(swedenroads_2022) <- c("id", "brghtsk", "hastght", "dou2017",
-                        "Ådt_frd", "Ådt_tng", "Ådt_mtr", "vägbrdd",
+                  "ålder","PredictedServiceLife", "RemainingServiceLife",
+                  "PCI_23", "PCIClass_23","IKls_1","IKls_2","IKls_3")
+swedenroads_2023 <-  swedenroads_2023[,..swroads_cols2]
+names(swedenroads_2023) <- c("id", "brghtsk", "hastght", "dou2017",
+                        "ådt_frd", "ådt_tng", "ådt_mtr", "vägbrdd",
                         "vägnmmr","vägktgr", "vägtyp", "längd",  
                         "blggnngsd","blggnngst", "tackning",
                         "spårdjp",  "iri","mätdatm","IRI_maint", "SP_maint",
                         "län_nr", "kmmn_nr",
-                        "Ålder","FrvntdL", "ÅtrstnL",
+                        "ålder","FrvntdL", "ÅtrstnL",
                         "Tllstnl", "IndxKls","IKls_1","IKls_2","IKls_3")
 # Join with geometry
-swedenroads_2022 <- dplyr::left_join(swedenroads_2022,sw22_geo, by=c("id" = "ID"))
+swedenroads_2023 <- dplyr::left_join(swedenroads_2023,sw23_geo, by=c("id"))
+head(swedenroads_2023)
 
 # Quality check
-head(swedenroads_2022)
-QualitativeStatsSingleGroup(swedenroads_2022, quo(IndxKls), quo(längd))
-QualitativeStatsSingleGroup(swedenroads_2022, quo(IKls_1), quo(längd))
-QualitativeStatsSingleGroup(swedenroads_2022, quo(IKls_2), quo(längd))
-QualitativeStatsSingleGroup(swedenroads_2022, quo(IKls_3), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2023, quo(IndxKls), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2023, quo(IKls_1), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2023, quo(IKls_2), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2023, quo(IKls_3), quo(längd))
 
 # Export
-st_write(swedenroads_2022, paste0(datapath,"2022/VåraVägar/swedenroads_v1_2022.shp"))
+st_write(swedenroads_2023, paste0(datapath,"2023/VåraVägar/swedenroads_2023_all_scenarios.shp"), append=FALSE)
 
