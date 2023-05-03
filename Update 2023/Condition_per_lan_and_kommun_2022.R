@@ -170,3 +170,28 @@ addWorksheet(wb_gotland, "Gotland tillstånd 2022")
 writeData(wb_gotland, sheet = 1, gotland)
 #Save Workbook
 saveWorkbook(wb_gotland, "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Transportföretagen/Slutrapport/Gotland_2022.xlsx", overwrite = TRUE)
+
+########################################################
+# Export validation shapefiles for Nacka and Norrköping
+
+nacka <- swedt_PCI_2022 %>% dplyr::filter(Kmmnnmn == "Nacka") %>% 
+  dplyr::select(id, brghtsk, hastght, dou2017, ådt_frd, ådt_tng, ådt_mtr, vägbrdd, vägnmmr, vägktgr, vägtyp, längd,
+    Kmmnnmn, PCI_23, PCIClass, IRI_I_2, R_17_I_, R_15_I_, RMS_I_2, Rt_I_23, sp17_23, sp15_23, irih_23, iriv_23, mätdatm, iri_mnt, sp_mant, geometry)
+nacka <- st_as_sf(nacka)
+nacka <- st_transform(nacka, crs = 3011)
+class(nacka)
+head(nacka)
+nrow(nacka)
+
+norrkoping <- swedt_PCI_2022 %>% dplyr::filter(Kmmnnmn == "Norrköping") %>% 
+  dplyr::select(id, brghtsk, hastght, dou2017, ådt_frd, ådt_tng, ådt_mtr, vägbrdd, vägnmmr, vägktgr, vägtyp, längd,
+                Kmmnnmn, PCI_23, PCIClass, IRI_I_2, R_17_I_, R_15_I_, RMS_I_2, Rt_I_23, sp17_23, sp15_23, irih_23, iriv_23, mätdatm, iri_mnt, sp_mant, geometry)
+norrkoping <- st_as_sf(norrkoping)
+norrkoping <- st_transform(norrkoping, crs = 3011)
+head(norrkoping)
+nrow(norrkoping)
+
+st_write(nacka, "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/NIRA/Energimyndigheten/Swedenroads/nacka_swedenroads.shp", append=FALSE)
+st_write(norrkoping, "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/NIRA/Energimyndigheten/Swedenroads/norrkoping_swedenroads.shp", append=FALSE)
+
+
