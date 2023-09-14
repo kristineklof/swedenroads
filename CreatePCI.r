@@ -37,15 +37,12 @@ Index <- function(actual, cutoff){
 }
 
 itShouldCreateIndex <- function(){
-    testdat <- data.frame(IRI_mnt = c(5,5,5,5),
-                          IRI_l_p = c(NA,1,6,10),
-                          IRI_r_p = c(NA,1,5,15),
-                          PrdctSL = c(10,10,10,10),
-                          RmnngSL = c(-10,-1,9,10),
+    testdat <- data.frame(IRI_r_p = c(NA,1,5,15),
+                          IRI_mnt = c(5,5,5,5),
                           rt_m17_ = c(NA,1,6,10),
-                          rt_m15_ = c(3,1,5,15),
                           SP_mant = c(5,5,5,5),
-                          RodWdth = c(6,6.5,7,11))
+                          PrdctSL = c(10,10,10,10),
+                          RmnngSL = c(-10,-1,9,10))
 
     res_iri <- Index(actual = (testdat$IRI_mnt-testdat$IRI_r_p), cutoff = (testdat$IRI_mnt-1))
     #print(res_iri)
@@ -59,10 +56,6 @@ itShouldCreateIndex <- function(){
     gold_iri <- c(NA, 100, 20, 0)
     gold_sp <- c(NA, 72, 14, 4)
     gold_rms <- c(4, 17, 85, 100)
-
-    #gold_iri <- c(NA, 100, 20, 0.358)
-    #gold_sp <- c(NA, 72.478, 14.496, 4)
-    #gold_rms <- c(4, 17.027, 85.134, 100)
 
     stopifnot(identical(res_iri, gold_iri))
     stopifnot(identical(res_sp, gold_sp))

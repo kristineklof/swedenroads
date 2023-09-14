@@ -194,7 +194,7 @@ PlotIndexCurve <- function(cutoff, actual, x_lab){
     index <- function(x) 100*exp(--log(0.2)*x)
 
   p <- ggplot(data = df, mapping = aes(x = x)) + 
-                stat_function(fun = index, size = 1) +
+                stat_function(fun = index, linewidth = 1) +
                 geom_hline(yintercept=20, linetype="dashed", color = "red", size = 2) +
                 theme(axis.text.x = element_text(size=16),
                       axis.text.y = element_text(size=16),

@@ -3,8 +3,7 @@
 #=================================================================#
 source("LoadInstall.R")
 deps <- c("sf", "data.table","tidyverse", "lwgeom","survival","fasttime","survminer",
-          "remotes","sp", "rgdal", "rpostgis", "RPostgres", "scales", 
-          "openxlsx", "writexl","gridExtra", "ggrepel", "xtable", "pracma")
+          "scales", "openxlsx", "writexl","gridExtra", "ggrepel", "xtable", "pracma")
 LoadInstall(deps)
 options(scipen=999)
 
