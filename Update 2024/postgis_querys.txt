@@ -1,0 +1,229 @@
+##########################################
+# Union of belaggning and matdata
+
+CREATE TABLE sweden_belaggning_2024 AS 
+SELECT * FROM "blekinge-belaggning-senaste-2024" 
+UNION SELECT * FROM "dalarna-belaggning-senaste-2024" 
+UNION SELECT * FROM "gavleborg-belaggning-senaste-2024" 
+UNION SELECT * FROM "gotland-belaggning-senaste-2024" 
+UNION SELECT * FROM "halland-belaggning-senaste-2024" 
+UNION SELECT * FROM "jamtland-belaggning-senaste-2024" 
+UNION SELECT * FROM "jonkoping-belaggning-senaste-2024" 
+UNION SELECT * FROM "kalmar-belaggning-senaste-2024" 
+UNION SELECT * FROM "kronoberg-belaggning-senaste-2024" 
+UNION SELECT * FROM "norrbotten-belaggning-senaste-2024" 
+UNION SELECT * FROM "orebro-belaggning-senaste-2024" 
+UNION SELECT * FROM "ostergotland-belaggning-senaste-2024" 
+UNION SELECT * FROM "skane-belaggning-senaste-2024" 
+UNION SELECT * FROM "sodermanland-belaggning-senaste-2024" 
+UNION SELECT * FROM "stockholm-belaggning-senaste-2024" 
+UNION SELECT * FROM "uppsala-belaggning-senaste-2024" 
+UNION SELECT * FROM "varmland-belaggning-senaste-2024" 
+UNION SELECT * FROM "vasterbotten-belaggning-senaste-2024" 
+UNION SELECT * FROM "vasternorrland-belaggning-senaste-2024" 
+UNION SELECT * FROM "vastmanland-belaggning-senaste-2024" 
+UNION SELECT * FROM "vastra-gotaland-belaggning-senaste-2024"
+
+CREATE INDEX bel24_idx ON sweden_belaggning_2024 USING GIST (geom);
+
+ALTER TABLE "blekinge-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "halland-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "jamtland-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "norrbotten-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "skane-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "varmland-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "vasterbotten-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+ALTER TABLE "vasternorrland-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+
+ALTER TABLE "vastra-gotaland-matdata-senaste-2024"
+ALTER COLUMN spr_korfalt TYPE double precision USING spr_korfalt::double precision,
+ALTER COLUMN spr2 TYPE double precision USING spr2::double precision,
+ALTER COLUMN spr3 TYPE double precision USING spr3::double precision,
+ALTER COLUMN spr4 TYPE double precision USING spr4::double precision;
+
+
+CREATE TABLE sweden_matdata_2024 AS 
+SELECT * FROM "blekinge-matdata-senaste-2024" 
+UNION SELECT * FROM "dalarna-matdata-senaste-2024" 
+UNION SELECT * FROM "gavleborg-matdata-senaste-2024" 
+UNION SELECT * FROM "gotland-matdata-senaste-2024" 
+UNION SELECT * FROM "halland-matdata-senaste-2024" 
+UNION SELECT * FROM "jamtland-matdata-senaste-2024" 
+UNION SELECT * FROM "jonkoping-matdata-senaste-2024" 
+UNION SELECT * FROM "kalmar-matdata-senaste-2024" 
+UNION SELECT * FROM "kronoberg-matdata-senaste-2024" 
+UNION SELECT * FROM "norrbotten-matdata-senaste-2024" 
+UNION SELECT * FROM "orebro-matdata-senaste-2024" 
+UNION SELECT * FROM "ostergotland-matdata-senaste-2024" 
+UNION SELECT * FROM "skane-matdata-senaste-2024" 
+UNION SELECT * FROM "sodermanland-matdata-senaste-2024" 
+UNION SELECT * FROM "stockholm-matdata-senaste-2024" 
+UNION SELECT * FROM "uppsala-matdata-senaste-2024" 
+UNION SELECT * FROM "varmland-matdata-senaste-2024" 
+UNION SELECT * FROM "vasterbotten-matdata-senaste-2024" 
+UNION SELECT * FROM "vasternorrland-matdata-senaste-2024" 
+UNION SELECT * FROM "vastmanland-matdata-senaste-2024" 
+UNION SELECT * FROM "vastra-gotaland-matdata-senaste-2024";
+
+CREATE INDEX mat24_idx ON sweden_matdata_2024 USING GIST (geom);
+
+##########################################
+# Add belaggning and matdata
+
+# swedenroads_2024 är grunddata för VåraVägar
+
+ALTER TABLE "swedenroads_2024"
+ADD COLUMN sparm17_24 NUMERIC,
+ADD COLUMN sparm15_24 NUMERIC,
+ADD COLUMN irih_24 NUMERIC,
+ADD COLUMN iriv_24 NUMERIC,
+ADD COLUMN kantdjup_24 NUMERIC,
+ADD COLUMN matdatum_24 VARCHAR;
+
+UPDATE swedenroads_2024 AS sw
+SET sparm17_24 = sq.sparm17, 
+	sparm15_24 = sq.sparm15,
+	irih_24 = sq.irih,
+	iriv_24 = sq.iriv,
+	kantdjup_24 = sq.kantdjup
+FROM  (SELECT nb.id, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irihoger) AS irih,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irivanster) AS iriv,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+	FROM "swedenroads_2024" AS nb
+	LEFT JOIN "sweden_matdata_2024" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.id) AS sq
+WHERE  sw.id=sq.id;
+
+UPDATE swedenroads_2024 AS sw
+SET matdatum_24 = sq.matdatum 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.matdatum AS matdatum,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS mat_intersect_len
+	FROM "swedenroads_2024" AS nv
+	LEFT JOIN "sweden_matdata_2024" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, mat_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+
+ALTER TABLE "swedenroads_2024"
+ADD COLUMN beldat_24 VARCHAR,
+ADD COLUMN beltyp_24 VARCHAR,
+ADD COLUMN tillvm_24 VARCHAR,
+ADD COLUMN utlm_24 VARCHAR,
+ADD COLUMN tackning_24 VARCHAR,
+ADD COLUMN korfalt_24 NUMERIC;
+
+ALTER TABLE "swedenroads_2024"
+ALTER COLUMN korfalt_24 TYPE VARCHAR USING korfalt_24::VARCHAR;
+
+UPDATE swedenroads_2024 AS sw
+SET beldat_24 = sq.beldat, 
+	beltyp_24 = sq.beltyp,
+	tillvm_24 = sq.tillvm,
+	utlm_24 = sq.utlm,
+	korfalt_24 = sq.korfalt,
+	tackning_24 = sq.tackning
+FROM  (SELECT DISTINCT ON (nv.id)
+	    nv.id,
+		b_all.belaggningsdatum AS beldat,
+		b_all.belaggningstyp AS beltyp, 
+		b_all.tillverkningsmetod AS tillvm,
+		b_all.utlaggningsmetod AS utlm,
+	 	b_all.korfalt AS korfalt,
+		b_all.tackning AS tackning, 
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)) as bel_intersect_len
+	FROM "swedenroads_2024" AS nv
+	LEFT JOIN "sweden_belaggning_2024" AS b_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)
+	ORDER BY nv.id, bel_intersect_len DESC, b_all.korfalt
+) AS sq
+WHERE  sw.id=sq.id;
+
+#############################################
+# Add new NVDB data to swedenroads
+
+ALTER TABLE "swedenroads_2024"
+ADD COLUMN barig_24 NUMERIC,
+ADD COLUMN dou_24 NUMERIC,
+ADD COLUMN adt_24 NUMERIC,
+ADD COLUMN adt_tung_24 NUMERIC,
+ADD COLUMN adt_mat_24 NUMERIC,
+ADD COLUMN hast_24 NUMERIC,
+ADD COLUMN vagtyp_24 NUMERIC,
+ADD COLUMN vagbredd_24 NUMERIC;
+
+ALTER TABLE your_table_name
+DROP COLUMN vagbredd_24;
+
+UPDATE swedenroads_2024 AS sw
+SET barig_24 = sq.barig,
+    adt_24 = sq.adt,
+    adt_tung_24 = sq.adt_t,
+    adt_mat_24 = sq.adt_mat,
+    hast_24 = sq.hast,
+    dou_24 = sq.dou,
+    vagtyp_24 = sq.vagtyp
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.barig_64 AS barig,
+	nm.f_hogst_225 AS hast,
+	nm.matar_121 AS adt_mat,
+	nm.adt_l_115 AS adt_t,
+	nm.adt_f_117 AS adt,
+	nm.under_397 AS dou,
+	nm.vagty_41 AS vagtyp,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS nvdb_intersect_len
+	FROM "swedenroads_2024" AS nv
+	LEFT JOIN "nvdb_homo_2024" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, nvdb_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+
+

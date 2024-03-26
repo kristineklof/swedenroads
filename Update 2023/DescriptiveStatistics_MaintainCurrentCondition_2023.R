@@ -41,13 +41,13 @@ pci2032_mcur_budget[, PCIClass := as.factor(PCIClass)]
 str(pci2032_mcur)
 head(pci2032_mcur)
 
-swedt_PCI <- PCIClass(swedt_PCI)
-swedt_PCI[, PCIClass := as.factor(PCIClass)]
-str(swedt_PCI)
-
 cols <- c("Objectd","Length","AADT","RoadTyp","tkl8")
 pci2032_mcur <- pci2032_mcur[swedt_PCI[, ..cols], on = 'Objectd']
 pci2032_mcur_budget <- pci2032_mcur_budget[swedt_PCI[, ..cols], on = 'Objectd']
+
+swedt_PCI <- PCIClass(swedt_PCI)
+swedt_PCI[, PCIClass := as.factor(PCIClass)]
+str(swedt_PCI)
 
 # Colors
 fill <- c("#20AC65", "#71C94B","#FABF20","#F2203E","#C40A3B")

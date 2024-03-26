@@ -50,6 +50,18 @@ AddRegion2023 <- function(län_nr){
   return(region)
 }
 
+AddRegion <- function(län_nr){
+  region <- ifelse(län_nr == 24 | län_nr == 25, "Nord", NA)
+  region <- ifelse(län_nr == 20 | län_nr == 21 | län_nr == 22 | län_nr == 23, "Mitt", region)
+  region <- ifelse(län_nr == 1, "Sthlm", region)
+  region <- ifelse(län_nr == 9, "Gotland", region)
+  region <- ifelse(län_nr == 3 | län_nr == 4 | län_nr == 5 | län_nr == 18 | län_nr == 19, "Ost", region)
+  region <- ifelse(län_nr == 13 | län_nr == 14 | län_nr == 17, "Vast", region)
+  region <- ifelse(län_nr == 6 | län_nr == 7 | län_nr == 8 | län_nr == 10 | län_nr == 12, "Syd", region)
+  
+  return(region)
+}
+
 itShouldAddRegion <- function(){
   län_nr <- c(3,4,1,25,13,7)
   res <- AddRegion2023(län_nr)
@@ -141,6 +153,21 @@ TrafficClass2023 <- function(dat){
   return(dat)
 }
 
+TrafficClass <- function(dat){
+  setDT(dat)
+  # Add Traffic class variable
+  dat[, trfkkls := ifelse(ådt_frd <250, 1, NA)]
+  dat[, trfkkls := ifelse(ådt_frd >=250, 2, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >499, 3, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >999, 4, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >1999, 5, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >3999, 6, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >7999, 7, trfkkls)]
+  dat[, trfkkls := ifelse(ådt_frd >11999, 8, trfkkls)]
+  
+  return(dat)
+}
+
 ChangeBeltyp <- function(blggnngst){
   beltyp <- if_else_na(blggnngst == 1, "Varm", 
                        if_else_na(blggnngst == 2, "Försegling", 
@@ -178,7 +205,7 @@ ChangeTackningNumerisk <- function(tackning){
   return(tackning)
 }
 
-ConditionComparisonBetweenYears <- function(dat1,dat2,grp,grp_name,single=FALSE){
+ConditionComparisonBetweenYears24 <- function(dat1,dat2,grp,grp_name,single=FALSE){
   if(single){
     pci_old <- QualitativeStatsSingleGroup(dat1, quo(indxkls), quo(längd))
     pci_old <- pci_old %>% 
@@ -223,6 +250,54 @@ ConditionComparisonBetweenYears <- function(dat1,dat2,grp,grp_name,single=FALSE)
     pci_old_vs_new <- na.omit(pci_old_vs_new)
   }
 
+  return(pci_old_vs_new)
+}
+
+ConditionComparisonBetweenYears24 <- function(dat1,dat2,grp,grp_name,single=FALSE){
+  if(single){
+    pci_old <- QualitativeStatsSingleGroup(dat1, quo(indxkls), quo(längd))
+    pci_old <- pci_old %>% 
+      dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen_old = round(grouplen,0)) %>%
+      dplyr::mutate(prop_old = prop*100) %>%
+      dplyr::mutate(prop_old = round(prop_old,1)) %>%
+      dplyr::select(-c(prop, grouplen,indxkls))
+    
+    pci_new <- QualitativeStatsSingleGroup(dat2, quo(PCIClass_24), quo(längd))
+    pci_new <- pci_new %>% 
+      dplyr::mutate(PCIClass = factor(PCIClass_24, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen_new = round(grouplen,0)) %>%
+      dplyr::mutate(prop_new = prop*100) %>%
+      dplyr::mutate(prop_new = round(prop_new,1)) %>%
+      dplyr::select(-c(prop, grouplen,PCIClass_24))
+    
+    pci_old_vs_new <- dplyr::left_join(pci_old, pci_new, by=c("PCIClass"))
+    pci_old_vs_new <- na.omit(pci_old_vs_new)
+  } else {
+    pci_old <- QualitativeStatsDoubleGroup(dat1, grp, quo(indxkls), quo(längd))
+    pci_old <- pci_old %>% 
+      dplyr::mutate(PCIClass = factor(indxkls, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen_old = round(grouplen,0)) %>%
+      dplyr::mutate(prop_old = prop*100) %>%
+      dplyr::mutate(prop_old = round(prop_old,1)) %>%
+      dplyr::select(-c(prop, grouplen,indxkls))
+    
+    pci_new <- QualitativeStatsDoubleGroup(dat2, grp, quo(PCIClass_24), quo(längd))
+    pci_new <- pci_new %>% 
+      dplyr::mutate(PCIClass = factor(PCIClass_24, levels = c("5","4","3","2","1"))) %>%
+      dplyr::mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
+      dplyr::mutate(grouplen_new = round(grouplen,0)) %>%
+      dplyr::mutate(prop_new = prop*100) %>%
+      dplyr::mutate(prop_new = round(prop_new,1)) %>%
+      dplyr::select(-c(prop, grouplen,PCIClass_24))
+    
+    pci_old_vs_new <- dplyr::left_join(pci_old, pci_new, by=c(grp_name, "PCIClass"))
+    pci_old_vs_new <- na.omit(pci_old_vs_new)
+  }
+  
   return(pci_old_vs_new)
 }
 

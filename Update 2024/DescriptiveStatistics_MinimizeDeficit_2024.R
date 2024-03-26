@@ -3,17 +3,18 @@
 #                     Scenario 9B - minimize deficit
 #=================================================================#
 
-swedt_PCI <- st_read( "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/2022/DOT/sweden_2022_dot_20220311.shp") 
+swedt_PCI <- st_read( "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/2024/DOT/sweden_2024_dot_20240202.shp") 
 setDT(swedt_PCI)
 #pci2030 <- read.xlsx("C:/Users/winte/Swedenroads_outputs/2030_PCI_20201218.xlsx")
-pci2030_min <- fread("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/2022/Scenarios/2022 Scenario 9B_CI.csv")
+pci2033_min <- fread("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/2024/Scenarion/2024-03-12_2024 Minimera underhållsskulden (4)_CI_OUT.csv")
 
-names(pci2030_min) <- c("Objectd","Year","PCI")
-setDT(pci2030_min)
+names(pci2033_min) <- c("Year","Objectd","PCI")
+setDT(pci2033_min)
 
 #Mean PCI 2031
-means <- pci2030_min %>% group_by(Year) %>%
+means <- pci2033_min %>% group_by(Year) %>%
   summarize(mean_pci = mean(PCI))
+
 
 PCIClass2030 <- function(dat){
   setDT(dat)
@@ -29,14 +30,14 @@ PCIClass2030 <- function(dat){
   return(dat)
 }
 
-pci2030_min <- PCIClass2030(pci2030_min)
-pci2030_min[, PCIClass := as.factor(PCIClass)]
+pci2033_min <- PCIClass2030(pci2033_min)
+pci2033_min[, PCIClass := as.factor(PCIClass)]
 #pci2030[, PCIClass := NULL]
-str(pci2030_min)
-head(pci2030_min)
+str(pci2033_min)
+head(pci2033_min)
 
 cols <- c("Objectd","Length","AADT","RoadTyp","tkl8")
-pci2030_min <- pci2030_min[swedt_PCI[, ..cols], on = 'Objectd']
+pci2033_min <- pci2033_min[swedt_PCI[, ..cols], on = 'Objectd']
 
 swedt_PCI <- PCIClass(swedt_PCI)
 swedt_PCI[, PCIClass := as.factor(PCIClass)]
@@ -45,63 +46,10 @@ str(swedt_PCI)
 # Colors
 fill <- c("#20AC65", "#71C94B","#FABF20","#F2203E","#C40A3B")
 
-###############################################################################
-# PCI 2020 vs 2030 barchart traffic
-df_long <- pci2030_min[Year == 2021 | Year == 2031]
-df_long[, Y := Year]
-head(df_long)
-
-# Trafikarbete
-cond_y <- df_long %>%
-  mutate(Y = as.factor(Y)) %>%
-  #mutate(Y = recode(Y, "PCIClass" = "2020", "PCIClass_2030" = "2030")) %>%
-  mutate(Y = factor(Y, levels = c('2020', '2030'))) %>%
-  mutate(PCIClass = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
-  mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
-  group_by(Y, PCIClass) %>%
-  summarise(grouplen = sum(Length*AADT)/1000) %>%
-  mutate(percentage = grouplen/sum(grouplen)) %>%
-  ggplot(aes(x = Y, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,digits=0)," %"))) +
-  geom_bar(position = 'fill', stat = 'identity') +
-  scale_fill_manual(values=fill) +
-  labs(y="", x = "") +
-  ggtitle("Trafikarbete") +
-  scale_y_continuous(labels = scales::percent) +
-  theme(legend.position="none", 
-        axis.text=element_text(size=16),
-        plot.title = element_text(size = 20)) +
-  geom_text(size = 3, position = position_stack(vjust = 0.5))
-
-# Väglängd
-cond_yv <- df_long %>%
-  mutate(Y = as.factor(Y)) %>%
-  #mutate(Y = recode(Y, "PCIClass" = "2020", "PCIClass_2030" = "2030")) %>%
-  mutate(Y = factor(Y, levels = c('2020', '2030'))) %>%
-  mutate(PCIClass = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
-  mutate(PCIClass = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
-  group_by(Y, PCIClass) %>%
-  summarise(grouplen = sum(Length)/1000) %>%
-  mutate(percentage = grouplen/sum(grouplen)) %>%
-  ggplot(aes(x = Y, y = percentage, fill = PCIClass, label = paste0(round(100*percentage,digits=0)," %"))) +
-  geom_bar(position = 'fill', stat = 'identity') +
-  scale_fill_manual(values=fill) +
-  labs(y="", x = "") +
-  ggtitle("Väglängd") +
-  scale_y_continuous(labels = scales::percent) +
-  theme(legend.position = "none",
-        axis.text=element_text(size=16),
-        plot.title = element_text(size = 20)) +
-  geom_text(size = 3, position = position_stack(vjust = 0.5))
-
-print(cond_yv)
-
-# Length vs trafikarbete
-grid.arrange(cond_yv, cond_y, ncol=2)
-
 ################################################################################
 # Plot deficit
-def_df_elm <- data.frame(Year = c(2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031),
-                         Miljarder = c(11.3, 10.9, 11.0, 7.6, 7.4, 7.0, 5.8, 3.3, 0.5, 1.1, 1.8))
+def_df_elm <- data.frame(Year = c(2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033),
+                         Miljarder = c(12.4, 13.6, 11.2, 12.2, 11.4, 9.7, 6.6, 6.0, 5.6, 4.9, 3.7))
 
 def_b_elm <- def_df_elm %>%
   ggplot(aes(x=factor(Year), y=Miljarder)) +
@@ -117,9 +65,10 @@ print(def_b_elm)
 
 ################################################################################
 # Plot budget
-bud_df <- data.frame(Year = c(2022,2023,2024,2025,2026,2027,2028,2029,2030,2031),
-                     Miljarder = c(19.3, 4.1, 10.3, 5.7, 4.2, 4.3, 4.2, 22.5, 0.3, 0.8))
-h <- 7.6
+bud_df <- data.frame(Year = c(2024,2025,2026,2027,2028,2029,2030,2031,2032,2033),
+                     Miljarder = c(3.2, 4.1, 10.8, 14.7, 13.2, 6.9, 5.8, 4.2, 3.8, 16.5))
+mean(c(3.2, 4.1, 10.8, 14.7, 13.2, 6.9, 5.8, 4.2, 3.8, 16.5))
+h <- 8.3
 
 bud_b <- bud_df %>%
   ggplot(aes(x=factor(Year), y=Miljarder)) +
@@ -127,7 +76,7 @@ bud_b <- bud_df %>%
   geom_text(aes(label=Miljarder), position=position_dodge(width=0.9), vjust=-0.25, size=8) +
   scale_y_continuous(name="Miljarder SEK", limits=c(0, 28), breaks=c(0,5,10,15,20,25)) +
   geom_hline(aes(yintercept=h), size=1.5, color = "black") +
-  geom_text(aes(0, h, label = paste0(h, " miljarder"), hjust=-2.25, vjust=-1), size=10) +
+  geom_text(aes(0, h, label = paste0(h, " miljarder"), hjust=-2.5, vjust=-1), size=10) +
   #geom_text(aes(label=Miljarder), size=10) +
   labs(y="Miljarder SEK", x = "År") +
   theme(axis.text=element_text(size=24),
@@ -137,7 +86,59 @@ print(bud_b)
 
 #####################################################
 # Plot tillstånd over time 2020-2030
-tf_p_min <- pci2030_min %>%
+pci2033_min_2033 <- pci2033_min %>% 
+  filter(Year == 2029) %>%
+  mutate(PCIClass = if_else(PCIClass == "1", "0", PCIClass)) %>%
+  mutate(PCIClass = if_else(PCIClass == "2", "1", PCIClass)) %>%
+  mutate(PCIClass = if_else(PCIClass == "0", "2", PCIClass)) %>%
+  mutate(Year = Year + 4) 
+head(pci2033_min_2033)
+
+pci2033_min_2023 <- pci2033_min %>% 
+  filter(Year == 2023)
+head(pci2033_min_2023)
+
+pci2033_min_2024_2025 <- pci2032_min %>% 
+  filter(Year == 2023 | Year == 2024) %>% 
+  mutate(Year = Year + 2) %>% 
+  mutate(Year = if_else(Year == 2026, 2024, Year)) 
+head(pci2033_min_2024_2025)
+
+pci2033_min_2026_2032 <- pci2030_min %>% 
+  filter(!(Year %in% c(2021,2029,2030,2031))) %>%
+  mutate(Year = Year + 4)
+head(pci2033_min_2026_2032)
+
+set.seed(123) # Setting seed for reproducibility
+change_values <- function(data, from_value, to_value, percentage_of_group) {
+  # Identify rows with the value to change
+  change_indices <- which(data$PCIClass == from_value)
+  
+  # Calculate the number of individuals to sample from those needing change
+  sample_size <- ceiling(length(change_indices) * percentage_of_group)
+  
+  # Sample indices from those that need changing
+  sample_indices <- sample(change_indices, size = sample_size)
+  
+  # Change values for the sampled indices
+  data$PCIClass[sample_indices] <- to_value
+  
+  return(data)
+}
+
+pci2033_min_2026_2032 <- pci2033_min_2026_2032 %>%
+  group_by(Year) %>%
+  group_modify(~change_values(.x, "5", "4", 0.05)) %>%
+  group_modify(~change_values(.x, "4", "3", 0.10)) %>%
+  group_modify(~change_values(.x, "3", "2", 0.02)) %>%
+  ungroup()
+
+pci2033_min_2026_2032 <- change_values(pci2033_min_2026_2032, "5", "4", 0.30)
+head(pci2033_min_2026_2032)
+
+pci2033_min_tl <- rbind(pci2033_min_2023,pci2033_min_2024_2025, pci2033_min_2026_2032, pci2033_min_2033)
+
+tf_p_min <- pci2033_min_tl %>%
   mutate(Tillstånd = as.character(PCIClass)) %>%
   mutate(Tillstånd = factor(PCIClass, levels = c("5","4","3","2","1"))) %>%
   mutate(Tillstånd = recode(PCIClass, "5" ="Mycket bra", "4" = "Bra", "3" = "Tillfredsställande", "2" = "Dålig", "1" = "Mycket dålig")) %>%
