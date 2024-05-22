@@ -48,7 +48,7 @@ sweden_2024_dot <- sweden_2024_dot %>%
   dplyr::mutate(PavementType = factor(PavementType)) %>%
   dplyr::mutate(PavementType = recode(PavementType, 
                                       "Varm" = "Hot Mix Ashphalt", 
-                                      "Hot mix asphalt (asphalt concrete)" = "Hot Mix Ashphalt",
+                                      "Hot mix asphalt (asphalt concrete)" = "Hot Mix Asphalt",
                                       "Tunnskikt" = "Thin Asphalt Layer", 
                                       "Thin asphalt layer" = "Thin Asphalt Layer",
                                       "Halvvarm" = "Half Warm Asphalt", 
@@ -72,7 +72,7 @@ sweden_2024_dot <- sweden_2024_dot %>%
                                       if_else(PavementType == "Half Warm Asphalt",
                                               "Half Warm Asphalt",
                                               if_else(PavementType == "Stone Mastic Asphalt",
-                                                      "Stone Mastic Asphalt", "Hot Mix Ashphalt"))))
+                                                      "Stone Mastic Asphalt", "Hot Mix Asphalt"))))
 
 sweden_2024_dot <- dplyr::left_join(sweden_2024_dot, lankom, by = c("län_nr" = "Län", "kmmn_nr" = "Kommunnr"))
 sweden_2024_dot <- sweden_2024_dot %>% dplyr::select(-c("PvmntTy","TrtmntD",
@@ -107,7 +107,9 @@ QualitativeStatsSingleGroup(sweden_2024_dot, quo(PCICls), quo(Length))
 nrow(sweden_2024_dot)
 
 # Join with geometry
-sweden_2024_dot <- dplyr::left_join(sweden_2024_dot,sw24_geo, by=c("Objectd" = "id"))
+sweden_2024_dot <- dplyr::left_join(sweden_2024_dot,sw24_geo, by=c("Objectd" = "ID"))
+
+# Export
 st_write(sweden_2024_dot, paste0(datapath,"2024/DOT/sweden_2024_dot_20240202.shp"))
 
 ##########################################################
