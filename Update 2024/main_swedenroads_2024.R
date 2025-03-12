@@ -6,7 +6,7 @@ source("LoadInstall.R")
 deps <- c("sf", "data.table","tidyverse","survival","fasttime","survminer",
           "openxlsx", "writexl","gridExtra", "ggrepel", "xtable", "pracma",
           "viridis","remotes","extrafont","gtable","cowplot","grid",
-          "RColorBrewer","ggpattern")
+          "RColorBrewer","ggpattern","patchwork")
 LoadInstall(deps)
 options(scipen=999)
 

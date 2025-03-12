@@ -481,9 +481,9 @@ print(p)
 
 skane_ems <- data.frame(Län = rep("Skåne",30),
                   År = rep(c(2024,2025,2026,2027,2028,2029,2030,2031,2032,2033),3),
-                  Scenario = c(rep("Inget förebyggande underhåll",10),
-                               rep("Förebyggande underhåll",10),
-                               rep("Minimera underhållsskulden",10)),
+                  Scenario = c(rep("1: Inget förebyggande underhåll",10),
+                               rep("2: Förebyggande underhåll",10),
+                               rep("3: Eliminera underhållsskulden",10)),
                   Kostnad = c(529,615,682,780,863,851,749,696,714,732,
                               698,592,514,494,501,484,462,464,456,761,
                               480,478,374,322,2074,996,808,740,424,463),
@@ -493,9 +493,9 @@ skane_ems <- data.frame(Län = rep("Skåne",30),
 
 sthlm_ems <- data.frame(Län = rep("Stockholm",30),
                     År = rep(c(2024,2025,2026,2027,2028,2029,2030,2031,2032,2033),3),
-                    Scenario = c(rep("Inget förebyggande underhåll",10),
-                                 rep("Förebyggande underhåll",10),
-                                 rep("Minimera underhållsskulden",10)),
+                    Scenario = c(rep("1: Inget förebyggande underhåll",10),
+                                 rep("2: Förebyggande underhåll",10),
+                                 rep("3: Eliminera underhållsskulden",10)),
                     Kostnad = c(554,472,437,544,938,581,140,182,841,267,
                                 340,331,275,250,189,188,197,197,569,479,
                                 460,347,229,1086,363,340,371,298,221,699),
@@ -505,9 +505,9 @@ sthlm_ems <- data.frame(Län = rep("Stockholm",30),
 
 norr_ems <- data.frame(Län = rep("Norrbotten",30),
                     År = rep(c(2024,2025,2026,2027,2028,2029,2030,2031,2032,2033),3),
-                    Scenario = c(rep("Inget förebyggande underhåll",10),
-                                 rep("Förebyggande underhåll",10),
-                                 rep("Minimera underhållsskulden",10)),
+                    Scenario = c(rep("1: Inget förebyggande underhåll",10),
+                                 rep("2: Förebyggande underhåll",10),
+                                 rep("3: Eliminera underhållsskulden",10)),
                     Kostnad = c(747,303,459,313,149,219,244,234,188,201,
                                 348,271,307,275,288,281,254,251,258,288,
                                 400,312,275,225,228,196,1184,541,375,402),
@@ -517,9 +517,9 @@ norr_ems <- data.frame(Län = rep("Norrbotten",30),
 
 ems <- rbind(skane_ems, sthlm_ems, norr_ems)
 
-custom_colors <- c("Inget förebyggande underhåll" = "#E41A1C",
-                   "Förebyggande underhåll" = "#377EB8",
-                   "Minimera underhållsskulden" = "#4DAF4A")
+custom_colors <- c("1: Inget förebyggande underhåll" = "#E41A1C",
+                   "2: Förebyggande underhåll" = "#377EB8",
+                   "3: Eliminera underhållsskulden" = "#4DAF4A")
 
 # Alla län
 kum_ems <- ems %>%
@@ -738,3 +738,76 @@ combined_plot_norr <- kostnad_plot_norr + co2e_plot_norr +
 # Print the combined plot
 print(combined_plot_norr)
 
+#######################################################
+# Nacka kommun
+nacka_ems <- data.frame(Year = rep(c(2024,2025,2026,2027,2028,2029,2030,2031,2032,2033),2),
+                       Scenario = c(rep("Optimerat underhåll",10),
+                                    rep('"Värst först"',10)),
+                       Cost = c(39.7,39.4,35.5,39.8,39.9,38.4,38.3,39.4,39.2,23.6,
+                                54.9, 54.9, 54.9, 54.9, 54.9, 54.9, 54.9 ,54.9, 54.9, 54.9),
+                       CO2e = c(361.1,	340.5,	327.0,	345.1,	365.1,	325.0,	346.8,	362.3,	334.4,	195.8,
+                                626.3,	655.2,	694.5,	710.1,	707.3,	570.4,	556.5,	511.8,	510.5,	509.5))
+
+# Calculate cumulative sums for Kostnad and CO2e
+nacka_ems_cumulative <- nacka_ems %>%
+  group_by(Scenario) %>%
+  arrange(Year) %>%
+  mutate(Cumulative_Kostnad = cumsum(Cost),
+         Cumulative_CO2e = cumsum(CO2e))
+
+nacka_custom_colors <- c('"Värst först"' = "#E41A1C",
+                        "Optimerat underhåll" = "#4DAF4A")
+
+# Plot cumulative Kostnad
+kostnad_plot_nacka <- ggplot(nacka_ems_cumulative, aes(x = Year, y = Cumulative_Kostnad, color = Scenario, group = Scenario)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = nacka_custom_colors) +
+  scale_x_continuous(breaks = 2024:2033) +
+  labs(title = "Ackumulerad underhållskostnad",
+       x = "År",
+       y = "Miljoner SEK",
+       color = "Underhållsstrategi:") +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Verdana"),  # Set font to Verdana
+    axis.title = element_text(size = 10),  
+    axis.text = element_text(size = 9),  
+    legend.title = element_text(size = 10), 
+    legend.text = element_text(size = 10),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),  # Major grid lines color
+    plot.title = element_text(size = 11),
+    panel.border = element_rect(color = "#55657C", fill = NA, size = 1)  # White border around the panel
+  )
+
+# Plot cumulative CO2e
+co2e_plot_nacka <- ggplot(nacka_ems_cumulative, aes(x = Year, y = Cumulative_CO2e, color = Scenario, group = Scenario)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = nacka_custom_colors) +
+  scale_x_continuous(breaks = 2024:2033) +
+  labs(title = "Ackumulerade växthusgasutsläpp",
+       x = "År",
+       y = "Ton CO2e",
+       color = "Underhållsstrategi:") +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Verdana"),  # Set font to Verdana
+    axis.title = element_text(size = 10),  
+    axis.text = element_text(size = 9),  
+    legend.title = element_text(size = 10), 
+    legend.text = element_text(size = 10),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),  # Major grid lines color
+    plot.title = element_text(size = 11),
+    panel.border = element_rect(color = "#55657C", fill = NA, size = 1)  # White border around the panel
+  )
+
+# Combine the plots with a shared legend
+combined_plot_nacka <- kostnad_plot_nacka + co2e_plot_nacka + 
+  plot_layout(ncol = 1, guides = 'collect') & # Combine plots in one column and collect guides (legend)
+  theme(legend.position = "bottom")           # Position legend at the bottom
+
+# Print the combined plot
+print(combined_plot_nacka)
