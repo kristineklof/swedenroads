@@ -1,0 +1,46 @@
+DROP TABLE IF EXISTS swedenroads_2025_vagtrummor_joined;
+
+CREATE TABLE swedenroads_2025_vagtrummor_joined AS
+SELECT
+    l.*,
+
+    -- point attributes (aliased so they don't collide)
+    p.id   AS p_id,
+    p.geom AS p_geom,
+    p.v_gnummer AS p_vagnr,
+    p.inloppstyp AS inloppstyp,
+    p.inloppsmat AS inloppsmat,
+    p.utloppstyp AS utloppstyp,
+    p.utloppsmat AS utloppsmat,
+    p.globalid AS globalid,
+    p.tillst_bed AS tillst_bed,
+    p.date_def AS date_def,
+    p.n_sta_besi AS n_sta_besi,
+    p.funktstatu AS funkstatu,
+    p.materialst AS materialst,
+    p.komment AS komment,
+    p.vattenbort AS vattenbort,
+    p.erosion_in AS erosion_in,
+    p.erosion_ut AS erosion_ut,
+    p.hinder_inl AS hinder_inl,
+    p.hinder_utl AS hinder_utl,
+    p.korrosion AS corrosion,
+    p.deformatio AS deformatio,
+    p.is_rdragna AS is_rdragna,
+    p.igenslamni AS igenslamni,
+    p.invdatum AS invdatum,
+    p.redigerad AS redigerad
+FROM swedenroads_2025_vagtrummor AS l
+LEFT JOIN vagtrummor_condition_2025 AS p
+  ON  l.vägnmmr = p.v_gnummer               -- <-- added attribute match
+  AND p.geom && ST_Expand(l.geom, 25)       -- cheap bbox prefilter (20+5=25m)
+  AND ST_Intersects(
+        ST_Buffer(l.geom, 20),
+        ST_Buffer(p.geom, 5)
+      );
+
+CREATE INDEX IF NOT EXISTS swedenroads_2025_vagtrummor_joined_line_geom_gix
+  ON swedenroads_2025_vagtrummor_joined USING GIST (geom);
+
+CREATE INDEX IF NOT EXISTS swedenroads_2025_vagtrummor_joined_p_geom_gix
+  ON swedenroads_2025_vagtrummor_joined USING GIST (p_geom);
