@@ -6,37 +6,24 @@
 # Validation file
 
 # Join with geometry
-sw25_full_geo <- dplyr::left_join(sw25,sw25_geo, by="id")
-st_write(sw25_full_geo, paste0(datapath,"2025/sweden_2025_validation_file.shp"), append=FALSE)
-head(sw25_full_geo)
-
-# Swedenroads for 2026 processing
-sweden_2025 <- sw25 %>% dplyr::select(id, brghtsk, hastght, dou2017, 
-                                          ådt_frd, ådt_tng, ådt_mtr, vägbrdd, 
-                                          vägktgr,RoadType, vägnmmr,längd, 
-                                          län_nr, kmmn_nr, trfkkls, region,  
-                                          PavementType, beldat_25, tackning, 
-                                          ålder, PredictedServiceLife, RemainingServiceLife,
-                                          IRI_maint, SP_maint, spårdjp, iri, matdatum_2, 
-                                          index_21, index_22, index_23, index_24, index_25)
-
-sweden_2025_full_geo <- dplyr::left_join(sweden_2025,sw25_geo, by="id")
-st_write(sweden_2025_full_geo, paste0(datapath,"2025/sweden_2025.shp"), append=FALSE)
+sw26_full_geo <- dplyr::left_join(sw26,sw26_geo, by="id")
+st_write(sw26_full_geo, paste0(datapath,"2026/sweden_2026_validation_file.shp"), append=FALSE)
+head(sw26_full_geo)
 
 ##########################################################
 # English output for analysis in DOT
-sweden_2025_dot <- sw25 %>% dplyr::select(id, brghtsk, hastght, dou2017, 
+sweden_2026_dot <- sw26 %>% dplyr::select(id, brghtsk, hastght, dou2017, 
                                           ådt_frd, ådt_tng, ådt_mtr, vägbrdd, 
-                                          vägktgr,RoadType, vägnmmr,längd, 
+                                          vägktgr,roadtyp, vägnmmr,längd, 
                                           län_nr, kmmn_nr, trfkkls, region,  
-                                          PavementType, beldat_25, tackning, 
-                                          ålder, PredictedServiceLife, RemainingServiceLife,
-                                          IRI_maint, SP_maint, spårdjp, iri, matdatum_2, 
-                                          index_25, PCIClass_25)
+                                          pvmntty, beldat_25, tacknng, 
+                                          ålder, prdctsl, rmnngsl,
+                                          iri_mnt, sp_mant, spårdjp, iri, matdatum, 
+                                          PCI_26, PCIClass_26)
 
-sweden_2025_dot <- sweden_2025_dot %>% 
-  dplyr::mutate(PavementType = factor(PavementType)) %>%
-  dplyr::mutate(PavementType = recode(PavementType, 
+sweden_2026_dot <- sweden_2026_dot %>% 
+  dplyr::mutate(pvmntty = factor(pvmntty)) %>%
+  dplyr::mutate(pvmntty = recode(pvmntty, 
                                       "Varm" = "Hot Mix Ashphalt", 
                                       "Hot mix asphalt (asphalt concrete)" = "Hot Mix Asphalt",
                                       "Tunnskikt" = "Thin Asphalt Layer", 
@@ -54,69 +41,116 @@ sweden_2025_dot <- sweden_2025_dot %>%
                                       "Varm stenrik" = "Stone Mastic Asphalt",
                                       "Hot mix asphalt (stone mastic)" = "Stone Mastic Asphalt",
                                       "Övrigt" = "Other")) %>%
-  dplyr::mutate(SurfaceType = if_else(PavementType == "Grouted Macadam" | 
-                                        PavementType == "Seal Coat" | 
-                                        PavementType == "Surface dressing on gravel" |
-                                        PavementType == "Surface dressing on bituminous surface",
+  dplyr::mutate(SurfaceType = if_else(pvmntty == "Grouted Macadam" | 
+                                        pvmntty == "Seal Coat" | 
+                                        pvmntty == "Surface dressing on gravel" |
+                                        pvmntty == "Surface dressing on bituminous surface",
                                       "Surface Treated",
-                                      if_else(PavementType == "Half Warm Asphalt",
+                                      if_else(pvmntty == "Half Warm Asphalt",
                                               "Half Warm Asphalt",
-                                              if_else(PavementType == "Stone Mastic Asphalt",
+                                              if_else(pvmntty == "Stone Mastic Asphalt",
                                                       "Stone Mastic Asphalt", "Hot Mix Asphalt")))) %>% 
   dplyr::mutate( brghtsk = as.integer(brghtsk),
-                hastght = as.integer(hastght),
-                dou2017 = as.integer(dou2017),
-                ådt_mtr = as.character(ådt_mtr),
-                dou2017 = as.integer(dou2017),
-                ådt_tng = as.integer(ådt_tng),
-                ådt_frd = as.integer(ådt_frd),
-                vägbrdd = as.integer(vägbrdd),
-                vägktgr = as.integer(vägktgr),
-                vägnmmr = as.integer(vägnmmr),
-                trfkkls = as.integer(trfkkls)) 
-                  
+                 hastght = as.integer(hastght),
+                 dou2017 = as.integer(dou2017),
+                 ådt_mtr = as.character(ådt_mtr),
+                 dou2017 = as.integer(dou2017),
+                 ådt_tng = as.integer(ådt_tng),
+                 ådt_frd = as.integer(ådt_frd),
+                 vägbrdd = as.integer(vägbrdd),
+                 vägktgr = as.integer(vägktgr),
+                 vägnmmr = as.integer(vägnmmr),
+                 trfkkls = as.integer(trfkkls)) %>%
+  dplyr::mutate(pcidate = as.Date("2025-01-01")) %>%
+  dplyr::mutate(area = längd*vägbrdd)
 
-sweden_2025_dot <- dplyr::left_join(sweden_2025_dot, lankom, by = c("län_nr" = "Län", "kmmn_nr" = "Kommunnr"))
+sweden_2026_dot <- dplyr::left_join(sweden_2026_dot, lankom, by = c("län_nr" = "Län", "kmmn_nr" = "Kommunnr"))
 
-head(sweden_2025_dot)
+head(sweden_2026_dot)
 
-colnames(sweden_2025_dot) <- c("Objectd","BrngCpC","SpedLmt","DoU2017",
+colnames(sweden_2026_dot) <- c("Objectd","BrngCpC","SpedLmt","DoU2017",
                                "AADT", "AADT_hv","AADT_m", "RodWdth",
                                "RdCtgry", "RoadTyp", "Rd_Nmbr","Length",
                                "County","Mncplty","tkl8","Region",
                                "PvmntTy","TrtmntD","Coverag","Age",
                                "PrdctSL","RmnngSL","IRI_mnt","SP_mant",
                                "Rut","IRI","MsmntD","PCI","PCICls","SrfcTyp",
-                               "CountN","MncpN")
+                               "PCIDate","Area","CountN","MncpN")
 
 itShouldCheckIfAnyVariableHasNAs <- function(){
-  stopifnot(sum(is.na(sweden_2025_dot$PvmntTy)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$PCI)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$AADT)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$AADT_hv)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$Region)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$DoU2017)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$RoadTyp)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$RodWdth)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$Length)) == 0)
-  stopifnot(sum(is.na(sweden_2025_dot$tkl8)) == 0)
-  stopifnot(max(sweden_2025_dot$PCI) == 100)
-  stopifnot(min(sweden_2025_dot$PCI) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$PvmntTy)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$PCI)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$AADT)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$AADT_hv)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$Region)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$DoU2017)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$RoadTyp)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$RodWdth)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$Length)) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$tkl8)) == 0)
+  stopifnot(max(sweden_2026_dot$PCI) == 100)
+  stopifnot(min(sweden_2026_dot$PCI) == 0)
+  stopifnot(sum(is.na(sweden_2026_dot$PCIDate)) == 0)
 }
 
 itShouldCheckIfAnyVariableHasNAs()
 
-QualitativeStatsSingleGroup(sweden_2025_dot, quo(PCICls), quo(Length))
-nrow(sweden_2025_dot)
-
 # Join with geometry
-sweden_2025_dot <- dplyr::left_join(sweden_2025_dot, sw25_geo, by=c("Objectd" = "id"))
-sweden_2025_dot <- sweden_2025_dot %>% dplyr::mutate(Objectd = as.integer(Objectd))
+sweden_2026_dot <- dplyr::left_join(sweden_2026_dot, sw26_geo, by=c("Objectd" = "id"))
+sweden_2026_dot <- sweden_2026_dot %>% dplyr::mutate(Objectd = as.integer(Objectd))
 
-unique(sweden_2025_dot$RoadTyp)
+QualitativeStatsSingleGroup(sweden_2026_dot, quo(PCICls), quo(Length))
+nrow(sweden_2026_dot)
+head(sweden_2026_dot)
 
-# Export
-st_write(sweden_2025_dot, paste0(datapath,"2025/DOT/sweden_2025_dot_20250130.shp"), append=FALSE)
+# Export shapefile
+st_write(sweden_2026_dot, paste0(datapath,"2026/DOT/sweden_2026_dot_20260129.shp"), append=FALSE)
+
+# Export Excel
+mapping <- c(
+  Objectd = "Asset ID",
+  BrngCpC = "Bearing Capacity",
+  SpedLmt = "Speed Limit",
+  DoU2017 = "DoU2017",
+  AADT = "AADT",
+  AADT_hv = "AADT Trucks",
+  AADT_m = "AADT Measurement Year",
+  RodWdth = "Width",
+  Length = "Length",
+  Area = "Area",
+  RdCtgry = "Road Category",
+  Region = "Region",
+  RoadTyp = "Road Type",
+  County = "County",
+  Mncplty = "Municipality",
+  SrfcTyp = "Surface Type",
+  tkl8 = "Traffic Class (tkl8)",
+  PvmntTy = "Pavement Type",
+  Coverag = "Coverage",
+  RmnngSL = "Remaining Service Life",
+  SP_mant = "SP_maint",
+  IRI_mnt = "IRI_maint",
+  Age = "Age",
+  CountN = "County Name",
+  MncpN = "Municipality Name",
+  PCI = "PCI",
+  MsmntD = "Measurement Date",
+  MsmntD = "Rut Assessment Date",
+  MsmntD = "IRI Assessment Date",
+  TrtmntD = "Treatment Date",
+  Rd_Nmbr = "Road Number",
+  Rut = "Rut",
+  IRI = "IRI",  
+  PCICls = "PCI Class",
+  PCIDate = "PCI Assessment Date"
+)
+
+export_swedenroads_split_10(df = sweden_2026_dot,
+                            template_path= file.path(datapath, "2026", "Roads_Inventory_Nov_26_2025.xlsx"),
+                            output_dir   = file.path(datapath, "2026", "DOT"),
+                            mapping      = mapping,
+                            base_name    = "sweden_20260129",
+                            n_parts      = 10)
 
 ##########################################################
 # Output till Anders/swedenroads/våravägar

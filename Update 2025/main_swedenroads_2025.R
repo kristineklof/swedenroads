@@ -123,3 +123,4 @@ sw25 <- PCIClass2025(sw25, "index_22", "PCIClass_22")
 sw25 <- PCIClass2025(sw25, "index_23", "PCIClass_23")
 sw25 <- PCIClass2025(sw25, "index_24", "PCIClass_24")
 sw25 <- PCIClass2025(sw25, "index_25", "PCIClass_25")
+

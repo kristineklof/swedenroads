@@ -1,0 +1,77 @@
+##########################################
+# Add belaggning and matdata
+# swedenroads_2025 är NY (uppdaterad) grunddata för VåraVägar
+# matdata takes 13 minutes
+# belaggning takes 2 minutes
+
+ALTER TABLE "swedenroads_2025"
+ADD COLUMN sparm17_25 NUMERIC,
+ADD COLUMN sparm15_25 NUMERIC,
+ADD COLUMN irih_25 NUMERIC,
+ADD COLUMN iriv_25 NUMERIC,
+ADD COLUMN kantdjup_25 NUMERIC,
+ADD COLUMN matdatum_25 VARCHAR;
+
+UPDATE swedenroads_2025 AS sw
+SET sparm17_25 = sq.sparm17, 
+	sparm15_25 = sq.sparm15,
+	irih_25 = sq.irih,
+	iriv_25 = sq.iriv,
+	kantdjup_25 = sq.kantdjup
+FROM  (SELECT nb.id, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm17) AS sparm17, 
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.sparm15) AS sparm15,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irihoger) AS irih,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.irivanster) AS iriv,
+		percentile_disc(0.75) WITHIN GROUP (ORDER BY nm.kantdjup) AS kantdjup
+	FROM "swedenroads_2025" AS nb
+	LEFT JOIN "sweden_matdata_2025" AS nm
+	ON ST_Intersects(ST_Buffer(nb.geom,1,'endcap=flat join=round'), nm.geom)
+	GROUP BY nb.id) AS sq
+WHERE  sw.id=sq.id;
+
+UPDATE swedenroads_2025 AS sw
+SET matdatum_25 = sq.matdatum 
+FROM  (SELECT DISTINCT ON (nv.id)
+	nv.id AS id,
+	nm.matdatum AS matdatum,
+	ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)) AS mat_intersect_len
+	FROM "swedenroads_2025" AS nv
+	LEFT JOIN "sweden_matdata_2025" AS nm
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), nm.geom)
+	ORDER BY nv.id, mat_intersect_len DESC) AS sq
+WHERE  sw.id=sq.id;
+
+ALTER TABLE "swedenroads_2025"
+ADD COLUMN beldat_25 VARCHAR,
+ADD COLUMN beltyp_25 VARCHAR,
+ADD COLUMN tillvm_25 VARCHAR,
+ADD COLUMN utlm_25 VARCHAR,
+ADD COLUMN tackning_25 VARCHAR,
+ADD COLUMN korfalt_25 NUMERIC;
+
+ALTER TABLE "swedenroads_2025"
+ALTER COLUMN korfalt_25 TYPE VARCHAR USING korfalt_25::VARCHAR;
+
+UPDATE swedenroads_2025 AS sw
+SET beldat_25 = sq.beldat, 
+	beltyp_25 = sq.beltyp,
+	tillvm_25 = sq.tillvm,
+	utlm_25 = sq.utlm,
+	korfalt_25 = sq.korfalt,
+	tackning_25 = sq.tackning
+FROM  (SELECT DISTINCT ON (nv.id)
+	    nv.id,
+		b_all.belaggningsdatum AS beldat,
+		b_all.belaggningstyp AS beltyp, 
+		b_all.tillverkningsmetod AS tillvm,
+		b_all.utlaggningsmetod AS utlm,
+	 	b_all.korfalt AS korfalt,
+		b_all.tackning AS tackning, 
+		ST_Length(ST_Intersection(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)) as bel_intersect_len
+	FROM "swedenroads_2025" AS nv
+	LEFT JOIN "sweden_belaggning_2025" AS b_all
+	ON ST_Intersects(ST_Buffer(nv.geom,1,'endcap=flat join=round'), b_all.geom)
+	ORDER BY nv.id, bel_intersect_len DESC, b_all.korfalt
+) AS sq
+WHERE  sw.id=sq.id;

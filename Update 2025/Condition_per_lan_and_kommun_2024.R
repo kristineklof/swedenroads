@@ -48,6 +48,12 @@ pci_kom_2024 <- pci_kom_2024 %>%
   mutate(prop = round(prop,1))
 
 sum(pci_kom_2024$grouplen)
+sw_lan_lookup <- swedt_PCI_2024[, .(Länsnamn = first(Länsnamn)), by = Kommunnamn]
+pci_kom_2024 <- pci_kom_2024 %>%
+  left_join(
+    as.data.frame(sw_lan_lookup),
+    by = "Kommunnamn"
+  )
 
 # Export to Excel
 wb <- createWorkbook()
