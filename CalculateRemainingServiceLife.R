@@ -13,7 +13,8 @@ CreateServiceLifeData <- function(dat, survdat, metod = "AFT",
                                   distribution, percentil_high, 
                                   percentil_low, div = "yes", 
                                   divclass = 5, vars = c("tkl8", "AADT", "AADT_heavy", "PavementType", "Region", 
-                                                         "BearingCapacityClass", "RoadType", "RoadWidth", "SpeedLimit")){
+                                                         "BearingCapacityClass", "RoadType", "RoadWidth", "SpeedLimit"),
+                                  cov_factor=0.3){
   setDT(dat)
   preddat <- dat[, ..vars]
   
@@ -45,7 +46,7 @@ CreateServiceLifeData <- function(dat, survdat, metod = "AFT",
   
   # If PavementType == "Försegling" subtract 8 years to remaining service life, 
   # "Indränkt makadam", "Tunnskikt", or "Övrigt", subtract 5 years to remaining service life, 
-  dat <- CoverageServiceLifes(dat)
+  dat <- CoverageServiceLifes(dat, cov_factor=cov_factor)
   
   # Set classes
   #dat <- SetClasses(dat)
@@ -53,20 +54,11 @@ CreateServiceLifeData <- function(dat, survdat, metod = "AFT",
   return(setDT(dat))
 }
 
-CoverageServiceLifes <- function(dat){
+CoverageServiceLifes <- function(dat, cov_factor=0.3){
   setDT(dat)
   
-  dat[, RemainingServiceLife := ifelse(Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning"), round(RemainingServiceLife*0.3,digits=0), RemainingServiceLife)]
-  #dat[, RemainingServiceLife:= ifelse(PavementType == "Försegling" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 5, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Indränkt makadam" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 5, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Övrigt" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 5, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Tunnskikt" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 7, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Ytbehandling på bituminöst underlag" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 7, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Ytbehandling på grus" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 7, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Halvvarm" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 7, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Varm" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 7, RemainingServiceLife)]
-  #dat[, RemainingServiceLife := ifelse(PavementType == "Varm stenrik" & (Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")), 7, RemainingServiceLife)]
-  
+  dat[, RemainingServiceLife := ifelse(Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning"), round(RemainingServiceLife*cov_factor,digits=0), RemainingServiceLife)]
+
   return(dat)
 }
 
@@ -76,7 +68,7 @@ itShouldSetServiceLivesForFläckvisCoverage <- function(){
                         tkl8 = c(1,1,1,1,7),
                         RemainingServiceLife = c(22,10,10,10,10))
   
-  res <- CoverageServiceLifes(testdat)
+  res <- CoverageServiceLifes(testdat, cov_factor=0.3)
   #print(res)
   gold <- c(7,10,10,3,3)
   stopifnot(res$RemainingServiceLife == gold)
