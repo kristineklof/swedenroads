@@ -92,7 +92,9 @@ PCI <- function(dat, datum){
                             Matning_RMS_min, PCI)]   
    dat[, PCI := ifelse((RoadTyp %in% c("Motorway", "Undivided motorway", "4-lane road", "2+1 road")) & !is.na(Matning_min),
                         Matning_min, PCI)]     
-   dat[, PCI :=  if_else_na(TrtmntD > MsrmntD | TrtmntD >= as.Date(datum), RMS_Index, PCI)] 
+   dat[, PCI := if_else_na(
+     !(Coverage %in% c("Fläckvis", "Spårlagning", "Fläckvis <20%", "Fläckvis >20%", "Kanthäng", "Fläckvis spårlagning")) &
+       (TrtmntD > MsrmntD | TrtmntD >= as.Date(datum)), RMS_Index, PCI)]
    dat[, PCI :=  if_else_na(is.na(PCI) & !is.na(Matning_mean), Matning_mean, PCI)]   
 
   dat[, PCI := round(PCI, digits=0)]
@@ -102,16 +104,17 @@ PCI <- function(dat, datum){
 }
 
 itShouldCreatePCI <- function(){
-    testdat <- data.frame(Rut_Index = c(89,100,30,15,NA,20,25,30),
-                          IRI_Index= c(86,NA,44,5,NA,NA,40,30),
-                          RMS_Index = c(20,90,15,35,20,40,30,NA),
-                          tkl8 = c(2,4,5,8,2,6,8,4),
-                          RoadTyp = c("Motorway", "2+1 road", "Ordinary road", "4-lane road", "Ordinary road", "Ordinary road", "Motorway","Ordinary road"),
-                          TrtmntD = as.Date(c("2018-05-05","2018-05-05","2018-05-05","2018-05-05","2018-05-05","2019-05-05","2018-05-05","2018-05-05")),
-                          MsrmntD = as.Date(c("2019-05-05","2017-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2017-05-05")))
+    testdat <- data.frame(Rut_Index = c(89,100,30,15,NA,20,25,30, 80),
+                          IRI_Index= c(86,NA,44,5,NA,NA,40,30, 100),
+                          RMS_Index = c(20,90,15,35,20,40,30,NA, 39),
+                          tkl8 = c(2,4,5,8,2,6,8,4, 2),
+                          Coverage = c("Heltäckande", "Heltäckande", "Heltäckande","Heltäckande","Heltäckande","Heltäckande","Heltäckande","Heltäckande","Fläckvis >20%"),
+                          RoadTyp = c("Motorway", "2+1 road", "Ordinary road", "4-lane road", "Ordinary road", "Ordinary road", "Motorway","Ordinary road", "Ordinary road"),
+                          TrtmntD = as.Date(c("2018-05-05","2018-05-05","2018-05-05","2018-05-05","2018-05-05","2019-05-05","2018-05-05","2018-05-05", "2019-09-01")),
+                          MsrmntD = as.Date(c("2019-05-05","2017-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2019-05-05","2017-05-05","2018-05-05")))
     
     res <- PCI(testdat, datum="2019-01-01")
-    gold <- c(86, 90, 15, 5, 20, 40, 25, 30)
+    gold <- c(86, 90, 15, 5, 20, 40, 25, 30, 52)
     #print(res)
     stopifnot(gold == res$PCI)
 }
