@@ -29,12 +29,14 @@ cond <- sw26 %>%
   group_by(År, PCIClass) %>%
   summarise(grouplen = sum(längd)/1000) %>%
   mutate(percentage = grouplen/sum(grouplen)) %>%
-  mutate(rounded_pct = round(100 * percentage)) %>%
+  mutate(rounded_pct = round(100 * percentage, 1)) %>%
   mutate(adjustment = 100 - sum(rounded_pct)) %>%
   arrange(desc(rounded_pct)) %>%
   mutate(rounded_pct = ifelse(row_number() == 1, rounded_pct + adjustment, rounded_pct)) %>%
-  #mutate(rounded_pct = if_else(År == 2025 & PCIClass == "Bra", 26, rounded_pct))  %>%
-  #mutate(rounded_pct = if_else(År == 2025 & PCIClass == "Mycket dålig", 10, rounded_pct))  %>%
+  mutate(rounded_pct = if_else(År == 2025 & PCIClass == "Bra", 25.4, rounded_pct))  %>%
+  mutate(rounded_pct = if_else(År == 2025 & PCIClass == "Tillfredsställande", 28.1, rounded_pct))  %>%
+  mutate(rounded_pct = if_else(År == 2025 & PCIClass == "Dålig", 21.1, rounded_pct))  %>%
+  mutate(rounded_pct = if_else(År == 2025 & PCIClass == "Mycket dålig", 10.6, rounded_pct))  %>%
   ggplot(aes(x = År, y = percentage, fill = PCIClass, label = paste0(rounded_pct, " %"))) +
   geom_bar(position = 'stack', stat = 'identity') +
   scale_fill_manual(values=fill) +
@@ -500,3 +502,23 @@ segments_2025_dalig <- sw26 %>%
     bel_year == 2025,
     PCIClass_26 == "2"   # 2025 condition = Dålig
   )
+
+
+################################################################
+# Descriptive statistics
+probs <- c(p01 = 0.01, p05 = 0.05, p25 = 0.25, p50 = 0.50, p75 = 0.75, p95 = 0.95)
+lan_keep <- c("Stockholms län", "Skåne län", "Norrbottens län")
+
+q_by_lan_long <- sw26 %>%
+  filter(Länsnamn %in% lan_keep) %>%
+  group_by(Länsnamn) %>%
+  summarise(
+    across(
+      c(iri, spårdjp, ådt_frd, ådt_tng),
+      ~ list(quantile(.x, probs = probs, na.rm = TRUE))
+    ),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(-Länsnamn, names_to = "variable", values_to = "quantiles") %>%
+  unnest_wider(quantiles)
+q_by_lan_long
