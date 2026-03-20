@@ -137,20 +137,23 @@ ranked <- score_per_gid_var %>%
     n_known = sum(!is.na(score)),
     share_known = n_known / n_total,
     
-    # weighted mean over known
     mean_score = ifelse(n_known == 0, NA_real_,
                         weighted.mean(score, weight, na.rm = TRUE)),
     
+    force_atg = any(variable %in% c("funkstatu", "materialst") & score == 1, na.rm = TRUE),
+    
     status = case_when(
+      force_atg ~ "Åtgärdsbehov",
       is.na(mean_score) | share_known < 0.5 ~ "Okänd",
       mean_score < 1.67 ~ "Åtgärdsbehov",
       mean_score < 2.33 ~ "Åtgärdsbehov på sikt",
       TRUE ~ "God status"
     ),
+    
     rank = case_when(
-      status == "Åtgärdsbehov (1)" ~ 1L,
-      status == "Åtgärdsbehov på sikt (2)" ~ 2L,
-      status == "God status (3)" ~ 3L,
+      status == "Åtgärdsbehov" ~ 1L,
+      status == "Åtgärdsbehov på sikt" ~ 2L,
+      status == "God status" ~ 3L,
       TRUE ~ NA_integer_
     ),
     .groups = "drop"
@@ -165,37 +168,44 @@ rank_pct <- ranked %>%
 rank_pct
 
 # Calculate value per road segment
-vagtrummor_no_geom <- left_join(vagtrummor_no_geom, ranked[c("globalid", "mean_score")], by="globalid")  
+vagtrummor_no_geom <- left_join(vagtrummor_no_geom, ranked[c("globalid", "mean_score" ,"force_atg")], by="globalid")  
 
 culvert_scores <- vagtrummor_no_geom %>%
   filter(!is.na(id), !is.na(globalid)) %>%
   group_by(id, globalid) %>%
   summarise(
     mean_score = if (all(is.na(mean_score))) NA_real_ else min(mean_score, na.rm = TRUE),
+    force_atg  = any(force_atg, na.rm = TRUE),   # if any row says TRUE, keep TRUE
     .groups = "drop"
   )
 
+# Section-level aggregation + section-level force flag
 section_scores <- culvert_scores %>%
   group_by(id) %>%
   summarise(
-    n_culverts = n(),
-    n_known = sum(!is.na(mean_score)),
-    share_known = n_known / n_culverts,
+    n_culverts   = n(),
+    n_known      = sum(!is.na(mean_score)),
+    share_known  = n_known / n_culverts,
+    
+    section_force_atg = any(force_atg, na.rm = TRUE),
     
     any_one = any(mean_score < 1.67, na.rm = TRUE),
     
-    section_mean = ifelse(n_known == 0, NA_real_,
-                          weighted.mean(mean_score, w = rep(1, n()), na.rm = TRUE)),
+    section_mean = ifelse(
+      n_known == 0, NA_real_,
+      weighted.mean(mean_score, w = rep(1, n()), na.rm = TRUE)
+    ),
     
     section_score = case_when(
       any_one ~ 1,
       TRUE ~ section_mean
     ),
+    
     .groups = "drop"
-  )
-section_scores <- section_scores %>%
+  ) %>%
   mutate(
     section_status = case_when(
+      section_force_atg ~ "Åtgärdsbehov",         # <-- override regardless of mean
       share_known < 0.5 ~ "Okänd",
       section_score < 1.67 ~ "Åtgärdsbehov",
       section_score < 2.33 ~ "Åtgärd på sikt",
@@ -250,3 +260,25 @@ chisq.test(tab_len)
 res <- chisq.test(tab_len)
 round(res$stdres, 2)
 rcompanion::cramerV(tab_len)
+
+
+##################################################################
+# Export vägtrummeindex till shapefil
+vagtrummeindex <- vagtrummor_no_geom %>% 
+  distinct(id, .keep_all = TRUE) %>%
+  select(-p_id, -inloppstyp, -inloppsmat, -utloppstyp, -utloppsmat,
+         -globalid, -tillst_bed, -date_def, -vattenbort,
+         -erosion_in, -erosion_ut, -hinder_inl, -hinder_utl,
+         -corrosion, -deformatio, -is_rdragna, -igenslamni,
+         -komment,  -n_sta_besi, -funkstatu, -materialst,
+         -invdatum, -redigerad, -mean_score) %>%
+  left_join(geom_by_id, by = "id")
+
+st_write(vagtrummeindex, paste0(datapath,"2026/vagtrummeindex_per_stracka.shp"), append=FALSE)
+
+# Export vägtrummor med status till shapefil 
+vagtrummor_with_status <- vagtrummor_no_geom %>% 
+  left_join(ranked[c("globalid","status")], by = "globalid")  %>% 
+  left_join(pgeom_by_pid[c("p_id","p_geom")], by = "p_id")
+
+st_write(vagtrummor_with_status, paste0(datapath,"2026/vagtrummor_with_status.shp"), append=FALSE)

@@ -5,7 +5,7 @@
 source("LoadInstall.R")
 deps <- c("sf", "DBI","tidyverse","RPostgres", "readxl")
 LoadInstall(deps)
-source("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/repos/swedenroads/Update 2026/vagtrummor_functions.R", encoding = 'UTF-8')
+source("Update 2026/vagtrummor_functions.R", encoding = 'UTF-8')
 
 con <- dbConnect(
   RPostgres::Postgres(),
@@ -23,6 +23,7 @@ dbDisconnect(con)
 # Inspection data
 trumrapport <- read_excel("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Transportföretagen/Uppdatering 2026/Vägtrummor/Trumrapport_20251118_nationellt.xlsx", sheet = 1)
 trumrapport$GlobalID <- gsub("[\\{\\}]", "", as.character(trumrapport$GlobalID))
+length(unique(trumrapport$GlobalID))
 
 # Join vagtrummor and trumrapport
 vagtrummor <- vagtrummor %>%

@@ -91,6 +91,8 @@ itShouldCheckIfAnyVariableHasNAs <- function(){
   stopifnot(max(sweden_2026_dot$PCI) == 100)
   stopifnot(min(sweden_2026_dot$PCI) == 0)
   stopifnot(sum(is.na(sweden_2026_dot$PCIDate)) == 0)
+  stopifnot(with(sweden_2026_dot,
+                 is.na(Rut) & is.na(IRI) | (!is.na(Rut) | !is.na(IRI)) & inherits(MsmntD, c("Date", "POSIXt"))))
 }
 
 itShouldCheckIfAnyVariableHasNAs()
@@ -156,100 +158,118 @@ export_swedenroads_split_10(df = sweden_2026_dot,
 # Output till Anders/swedenroads/våravägar
 swroads_cols <- c("id", "brghtsk", "hastght", "dou2017",
                   "ådt_frd", "ådt_tng", "ådt_mtr", "vägbrdd",
-                  "vägnmmr","vägktgr", "vägtyp", "längd",  
-                  "beldat_25","beltyp_25", "tackning",
-                  "spårdjp",  "iri","matdatum_2","IRI_maint", "SP_maint",
+                  "vägnmmr","vägktgr", "roadtyp", "längd",  
+                  "beldatum","pvmntty", "tacknng",
+                  "spårdjp",  "iri","matdatum","iri_mnt", "sp_mant",
                   "län_nr", "kmmn_nr",
-                  "ålder","PredictedServiceLife", "RemainingServiceLife",
-                  "index_25", "PCIClass_25")
-swedenroads_2025 <-  sw25[,..swroads_cols]
+                  "ålder","prdctsl", "rmnngsl",
+                  "PCI_26", "PCIClass_26")
+swedenroads_2026 <-  sw26[,..swroads_cols]
 
-swedenroads_2025 <- UpdateBeltyp25(swedenroads_2025, lans_dt)
-
-swedenroads_2025 <- swedenroads_2025 %>%
-  dplyr::mutate(PavementType = ChangeBeltypNumerisk(PavementType)) %>%
-  dplyr::mutate(tackning = ChangeTackningNumerisk(tackning)) %>%
-  rename(blggnngsd = beldat_25, mätdatm = matdatum_2)
+swedenroads_2026 <- swedenroads_2026 %>%
+  dplyr::mutate(pvmntty = ChangeBeltypNumerisk(pvmntty)) %>%
+  dplyr::mutate(tacknng = ChangeTackningNumerisk(tacknng)) %>%
+  rename(blggnngsd = beldatum, mätdatm = matdatum)
 
 # Use values from PMSv3
-swedenroads_2025 <- swedenroads_2025  %>%
+swedenroads_2026 <- swedenroads_2026  %>%
   mutate(
-    vägktgr = sweden25$vägktgr,
-    vägtyp = sweden25$vägtyp,
-    dou2017 = sweden25$dou2017,
-    vägbrdd = sweden25$vägbrdd,
-    hastght = sweden25$hastght,
-    brghtsk = sweden25$brghtsk
+    vägktgr = sweden26$vägktgr,
+    vägtyp = sweden26$vägtyp,
+    dou2017 = sweden26$dou2017,
+    vägbrdd = sweden26$vägbrdd,
+    hastght = sweden26$hastght,
+    brghtsk = sweden26$brghtsk
   )
 
-swedenroads_2025 %>% summarise(na_count = sum(is.na(PavementType))) # NA count before missing: 19385
-swedenroads_2025 %>% summarise(na_count = sum(is.na(vägktgr))) # NA count before missing: 9
-swedenroads_2025 %>% summarise(na_count = sum(is.na(vägtyp))) # NA count before missing: 4
-swedenroads_2025 %>% summarise(na_count = sum(is.na(dou2017))) # NA count before missing: 8
-swedenroads_2025 %>% summarise(na_count = sum(is.na(vägbrdd))) # NA count before missing: 98
-swedenroads_2025 %>% summarise(na_count = sum(is.na(hastght))) # NA count before missing: 710
-swedenroads_2025 %>% summarise(na_count = sum(is.na(brghtsk))) # NA count before missing: 0
+swedenroads_2026 %>% summarise(na_count = sum(is.na(pvmntty))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(vägktgr))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(roadtyp))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(dou2017))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(vägbrdd))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(hastght))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(brghtsk))) 
 
 
 # Add classes
-pci2034_cur <- pci2034 %>% dplyr::filter(Year == 2033) %>%
+pci2035_cur <- pci2035 %>% dplyr::filter(Year == 2034) %>%
   dplyr::select(Objectd,PCIClass)
-names(pci2034_cur) <- c("id","IKls_1")
+names(pci2035_cur) <- c("id","IKls_1")
+nrow(pci2035_cur)
 
-pci2034_mcur_sw <- pci2034_mcur %>% dplyr::filter(Year == 2031) %>%
-  dplyr::select(Objectd,PCIClass)
-names(pci2034_mcur_sw) <- c("id","IKls_2")
+vagtummor_stracka_2025 <- st_read(paste0(datapath,"2026/vagtrummeindex_per_stracka.shp"))
+vagtummor_stracka_2025 <- st_drop_geometry(vagtummor_stracka_2025)
+vagtrummor_stracka <- vagtummor_stracka_2025 %>%
+  dplyr::select(id,sctn_st)
+names(vagtrummor_stracka) <- c("id","trumindex")
+nrow(vagtrummor_stracka)
 
-pci2034_min <- st_read( "C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Swedenroads_slutversioner/2025/Scenarion/dot_2025_with_min_uhskuld_2024.shp") 
-pci2034_min <- st_drop_geometry(pci2034_min)
+swedenroads_2026 <- dplyr::left_join(swedenroads_2026, pci2035_cur , by = c("id"))
+swedenroads_2026 <- dplyr::left_join(swedenroads_2026, vagtrummor_stracka, by = c("id"))
+swedenroads_2026 <- swedenroads_2026 %>% mutate(IKls_1 = if_else(is.na(IKls_1),PCIClass_26,IKls_1))
 
-pci2034_min_sw <- pci2034_min %>% 
-  dplyr::select(objectd, ikl_minuh_)
-names(pci2034_min_sw) <- c("id","IKls_3")
-
-swedenroads_2025 <- dplyr::left_join(swedenroads_2025, pci2034_cur, by = c("id"))
-swedenroads_2025 <- dplyr::left_join(swedenroads_2025, pci2034_mcur_sw, by = c("id"))
-swedenroads_2025 <- dplyr::left_join(swedenroads_2025, pci2034_min_sw, by = c("id"))
-
-swedenroads_2025 %>% summarise(na_count = sum(is.na(IKls_3))) # NA count before missing: 19781
-swedenroads_2025 %>% summarise(na_count = sum(is.na(IKls_2))) # NA count before missing: 406
-swedenroads_2025 %>% summarise(na_count = sum(is.na(IKls_1))) # NA count before missing: 406
-
-swedenroads_2025 <- swedenroads_2025 %>%
-  mutate(
-    IKls_3 = if_else(is.na(IKls_3), "5", IKls_3),
-    IKls_2 = if_else(is.na(IKls_2), "3", IKls_2),
-    IKls_1 = if_else(is.na(IKls_1), 3, IKls_1),
-    IKls_1 = as.character(IKls_1)
-  )
+swedenroads_2026 %>% summarise(na_count = sum(is.na(IKls_1))) 
+swedenroads_2026 %>% summarise(na_count = sum(is.na(trumindex)))
 
 swroads_cols2 <- c("id", "brghtsk", "hastght", "dou2017",
                    "ådt_frd", "ådt_tng", "ådt_mtr", "vägbrdd",
-                   "vägnmmr","vägktgr", "vägtyp", "längd",  
-                   "blggnngsd", "beltyp_25", "tackning",
-                   "spårdjp",  "iri","mätdatm","IRI_maint", "SP_maint",
+                   "vägnmmr","vägktgr", "roadtyp", "längd",  
+                   "blggnngsd","pvmntty", "tacknng",
+                   "spårdjp",  "iri","mätdatm","iri_mnt", "sp_mant",
                    "län_nr", "kmmn_nr",
-                   "ålder","PredictedServiceLife", "RemainingServiceLife",
-                   "index_25", "PCIClass_25","IKls_1","IKls_2","IKls_3")
-swedenroads_2025 <-  swedenroads_2025[,..swroads_cols2]
-names(swedenroads_2025) <- c("id", "brghtsk", "hastght", "dou2017",
+                   "ålder","prdctsl", "rmnngsl",
+                   "PCI_26", "PCIClass_26", "IKls_1", "trumindex")
+swedenroads_2026 <-  swedenroads_2026[,..swroads_cols2]
+names(swedenroads_2026) <- c("id", "brghtsk", "hastght", "dou2017",
                              "ådt_frd", "ådt_tng", "ådt_mtr", "vägbrdd",
                              "vägnmmr","vägktgr", "vägtyp", "längd",  
                              "blggnngsd","blggnngst", "tackning",
                              "spårdjp",  "iri","mätdatm","IRI_maint", "SP_maint",
                              "län_nr", "kmmn_nr",
                              "ålder","FrvntdL", "ÅtrstnL",
-                             "Tllstnl", "IndxKls","IKls_1","IKls_2","IKls_3")
+                             "Tllstnl", "IndxKls","IKls_1","trumindex")
 # Join with geometry
-swedenroads_2025 <- dplyr::left_join(swedenroads_2025,sw25_geo, by=c("id" = "id"))
-head(swedenroads_2025)
+swedenroads_2026 <- dplyr::left_join(swedenroads_2026,sw26_geo, by=c("id" = "id"))
+head(swedenroads_2026)
 
 # Quality check
-QualitativeStatsSingleGroup(swedenroads_2025, quo(IndxKls), quo(längd))
-QualitativeStatsSingleGroup(swedenroads_2025, quo(IKls_1), quo(längd))
-QualitativeStatsSingleGroup(swedenroads_2025, quo(IKls_2), quo(längd))
-QualitativeStatsSingleGroup(swedenroads_2025, quo(IKls_3), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2026, quo(IndxKls), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2026, quo(IKls_1), quo(längd))
+QualitativeStatsSingleGroup(swedenroads_2026, quo(trumindex), quo(längd))
 
 # Export
-st_write(swedenroads_2025, paste0(datapath,"2025/VåraVägar/swedenroads_2025_all_scenarios.shp"), append=FALSE)
+st_write(swedenroads_2026, paste0(datapath,"2026/VåraVägar/swedenroads_2026_all_scenarios.shp"), append=FALSE)
+
+#################################################################
+# Vägtrummor
+vagtummor_2025 <- st_read("C:/Users/krist/OneDrive - Salbo Konsult AB/salbo.ai/Transportföretagen/Uppdatering 2026/Vägtrummor/vagtrummor_2025.shp")
+head(vagtummor_2025)
+vagtummor_2025 <- st_drop_geometry(vagtummor_2025)
+vagtummor_2025 <- vagtummor_2025 %>% 
+  dplyr::mutate(date_def = as.Date(date_def)) %>% 
+  dplyr::select(globalid, inloppstyp, inloppsmat, inloppsbre, utloppstyp,utloppsmat, utloppsbre, v_gtruml_n, date_def)
+
+probs <- c(0.001, 0.05, 0.25, 0.50, 0.75, 0.95)
+q_num <- quantile(as.numeric(vagtummor_2025$date_def),
+                  probs = probs, na.rm = TRUE, type = 7)
+as.Date(q_num, origin = "1970-01-01")
+
+swedenroads_trummor <- st_read(paste0(datapath,"2026/vagtrummor_with_status.shp"))
+head(swedenroads_trummor)
+swedenroads_trummor <- swedenroads_trummor %>% 
+  dplyr::filter(!is.na(globald)) %>% 
+  dplyr::select(id, globald, län_nr, vägnmmr) %>%
+  dplyr::distinct(globald, .keep_all = TRUE)
+nrow(swedenroads_trummor)
+
+swedenroads_trummor <- left_join(swedenroads_trummor,vagtummor_2025,
+  by = c("globald" = "globalid"))
+
+nrow(swedenroads_trummor)
+length(unique(swedenroads_trummor$globald))
+
+# Export
+st_write(swedenroads_trummor, paste0(datapath,"2026/VåraVägar/Vägtrummor/swedenroads_2026_trummor.shp"), append=FALSE)
+
+
 
